@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>かぞくチャット</title>
+  <style>
+    /* 1. 基本設定とおばあちゃん用大文字デザイン */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: sans-serif;
+    }
+
+    body {
+      background-color: #f4ecd8; /* ★温かみのあるベージュ（後で好きな色に変えられるぞ！） */
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    /* ヘッダー */
+    header {
+      background-color: #5c4033;
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    header h1 {
+      font-size: 24px;
+    }
+
+    /* LINE通話ボタン */
+    .line-btn {
+      background-color: #06c755;
+      color: white;
+      text-decoration: none;
+      padding: 10px 18px;
+      border-radius: 30px;
+      font-size: 18px;
+      font-weight: bold;
+      border: 2px solid #ffffff;
+      box-shadow: 0 4px 0 #048839;
+    }
+
+    .line-btn:active {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #048839;
+    }
+
+    /* 2. メッセージ表示エリア */
+    #chat-box {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 15px 20px;
+      border-radius: 20px;
+      font-size: 22px; /* ★大きな文字サイズ */
+      line-height: 1.4;
+      word-wrap: break-word;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* 相手のメッセージ（左） */
+    .message.other {
+      align-self: flex-start;
+      background-color: #ffffff;
+      color: #333;
+      border: 3px solid #ddd;
+    }
+
+    /* 自分のメッセージ（右） */
+    .message.me {
+      align-self: flex-end;
+      background-color: #ddf3d5;
+      color: #2b5b20;
+      border: 3px solid #b2e0a2;
+    }
+
+    /* 3. 送信エリア */
+    .input-area {
+      background-color: #ffffff;
+      padding: 15px;
+      display: flex;
+      gap: 10px;
+      border-top: 3px solid #e0d0b8;
+    }
+
+    #message-input {
+      flex: 1;
+      font-size: 22px;
+      padding: 15px;
+      border: 3px solid #ccc;
+      border-radius: 15px;
+      outline: none;
+    }
+
+    #message-input:focus {
+      border-color: #5c4033;
+    }
+
+    /* 送信ボタン */
+    #send-btn {
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 15px;
+      padding: 0 25px;
+      font-size: 22px;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #2e7d32;
+    }
+
+    #send-btn:active {
+      transform: translateY(3px);
+      box-shadow: 0 2px 0 #2e7d32;
+    }
+
+    .delete-hint {
+      text-align: center;
+      font-size: 14px;
+      color: #777;
+      padding: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1 id="app-title">かぞくチャット</h1>
+    <a href="https://line.me/" class="line-btn" target="_blank">📞 LINEでおはなし</a>
+  </header>
+
+  <div class="delete-hint">※ メッセージをけすときは1.5秒ながおし</div>
+
+  <div id="chat-box">
+    <div class="message other">おばあちゃん、こんにちは！</div>
+    <div class="message me">はーい！げんきですよ</div>
+  </div>
+
+  <div class="input-area">
+    <input type="text" id="message-input" placeholder="メッセージを入力...">
+    <button id="send-btn">おくる</button>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById('chat-box');
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+
+    // 送信機能
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      if (text === "") return;
+
+      const msgDiv = document.createElement('div');
+      msgDiv.classList.add('message', 'me');
+      msgDiv.textContent = text;
+
+      setupLongPressDelete(msgDiv);
+
+      chatBox.appendChild(msgDiv);
+      messageInput.value = "";
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    // 誤操作防止の長押し削除（1.5秒）
+    function setupLongPressDelete(element) {
+      let timer;
+
+      element.addEventListener('touchstart', (e) => {
+        timer = setTimeout(() => {
+          if (confirm("このメッセージをけしますか？")) {
+            element.remove();
+          }
+        }, 1500);
+      });
+
+      element.addEventListener('touchend', () => clearTimeout(timer));
+      element.addEventListener('touchmove', () => clearTimeout(timer));
+
+      element.addEventListener('mousedown', () => {
+        timer = setTimeout(() => {
+          if (confirm("このメッセージをけしますか？")) {
+            element.remove();
+          }
+        }, 1500);
+      });
+      element.addEventListener('mouseup', () => clearTimeout(timer));
+      element.addEventListener('mouseleave', () => clearTimeout(timer));
+    }
+
+    document.querySelectorAll('.message').forEach(setupLongPressDelete);
+  </script>
+</body>
+</html>
