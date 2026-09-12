@@ -28,13 +28,21 @@
       background-color: #e2d9cd;
       border-radius: 9999px;
     }
+    /* ドラムロールピッカー用のスナップスクロール */
+    .wheel-container {
+      scroll-snap-type: y mandatory;
+      overscroll-behavior-y: contain;
+    }
+    .wheel-item {
+      scroll-snap-align: center;
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none">
 
   <main id="swipe-area" class="w-full max-w-md mx-auto p-4 flex-1 flex flex-col min-h-screen">
     
-    <!-- ヘッダー（タイトルがタブ名と連動して大きく変化） -->
+    <!-- ヘッダー（タイトルがタブ名と連動） -->
     <header class="flex items-center justify-between py-2 mb-2">
       <div class="flex items-center space-x-2.5">
         <div id="header-icon-box" class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-200">
@@ -47,27 +55,23 @@
       </div>
     </header>
 
-    <!-- タブ切り替えボタン -->
-    <div class="grid grid-cols-4 gap-1 p-1 bg-stone-200/70 rounded-2xl mb-3 text-center">
-      <button id="tab-shopping" onclick="switchCategory('shopping')" class="py-2.5 px-1 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all">
+    <!-- タブ切り替え（3つ：お買い物・学校・予定） -->
+    <div class="grid grid-cols-3 gap-1.5 p-1 bg-stone-200/70 rounded-2xl mb-3 text-center">
+      <button id="tab-shopping" onclick="switchCategory('shopping')" class="py-2.5 px-2 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all bg-white text-amber-600 shadow-sm">
         <i data-lucide="shopping-basket" class="w-5 h-5"></i>
         <span class="text-xs">お買い物</span>
       </button>
-      <button id="tab-today" onclick="switchCategory('today')" class="py-2.5 px-1 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all">
-        <i data-lucide="check-square" class="w-5 h-5"></i>
-        <span class="text-xs">今日のこと</span>
-      </button>
-      <button id="tab-school" onclick="switchCategory('school')" class="py-2.5 px-1 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all">
+      <button id="tab-school" onclick="switchCategory('school')" class="py-2.5 px-2 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all text-stone-500">
         <i data-lucide="graduation-cap" class="w-5 h-5"></i>
         <span class="text-xs">学校</span>
       </button>
-      <button id="tab-schedule" onclick="switchCategory('schedule')" class="py-2.5 px-1 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all">
+      <button id="tab-schedule" onclick="switchCategory('schedule')" class="py-2.5 px-2 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all text-stone-500">
         <i data-lucide="calendar" class="w-5 h-5"></i>
         <span class="text-xs">予定</span>
       </button>
     </div>
 
-    <!-- ===== 通常ビュー（お買い物・今日のこと・予定用） ===== -->
+    <!-- ===== 通常ビュー（お買い物・予定用） ===== -->
     <div id="standard-view" class="flex-1 flex flex-col">
       <!-- 予定カレンダー（予定タブ時のみ） -->
       <div id="calendar-wrapper" class="hidden mb-3 bg-white rounded-2xl p-4 shadow-sm border border-stone-200/80">
@@ -91,12 +95,12 @@
         <div id="cal-days-grid" class="grid grid-cols-7 gap-1 text-center text-sm font-bold"></div>
       </div>
 
-      <!-- 入力フォーム（ボタン一体型） -->
+      <!-- 入力フォーム -->
       <form id="todo-form" onsubmit="handleFormSubmit(event)" class="mb-2 relative flex items-center">
         <input
           type="text"
           id="todo-input"
-          placeholder="ここにメモを入力..."
+          placeholder="買うものを入力..."
           class="w-full bg-white border-2 border-stone-300 focus:border-amber-500 rounded-2xl py-3.5 pl-4 pr-20 text-stone-800 text-base placeholder-stone-400 shadow-sm outline-none"
           autocomplete="off"
         >
@@ -130,51 +134,35 @@
       <ul id="todo-list" class="space-y-2.5 overflow-y-auto flex-1 custom-scrollbar pb-6"></ul>
     </div>
 
-    <!-- ===== 学校専用ビュー（手書きおたより再現・じかん＆よてい表） ===== -->
+    <!-- ===== 学校専用ビュー（基本1週間表示・上スクロールで次週出現） ===== -->
     <div id="school-view" class="hidden flex-1 flex flex-col">
-      <!-- 月送り & 月/年間切り替え -->
-      <div class="bg-white rounded-2xl p-3 shadow-sm border border-stone-200/80 mb-3">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center space-x-1">
-            <button onclick="changeSchoolMonth(-1)" class="p-1.5 hover:bg-stone-100 rounded-lg text-stone-600">
-              <i data-lucide="chevron-left" class="w-5 h-5"></i>
-            </button>
-            <span id="school-month-title" class="text-xl font-black text-stone-800 tracking-tight"></span>
-            <button onclick="changeSchoolMonth(1)" class="p-1.5 hover:bg-stone-100 rounded-lg text-stone-600">
-              <i data-lucide="chevron-right" class="w-5 h-5"></i>
-            </button>
-          </div>
-
-          <div class="flex bg-stone-100 p-1 rounded-xl text-xs font-bold">
-            <button id="btn-school-month-view" onclick="setSchoolViewMode('month')" class="px-3 py-1 rounded-lg bg-emerald-600 text-white shadow-xs">月</button>
-            <button id="btn-school-year-view" onclick="setSchoolViewMode('year')" class="px-3 py-1 rounded-lg text-stone-600">年間</button>
-          </div>
+      <div class="bg-white rounded-2xl p-3 shadow-sm border border-stone-200/80 mb-2 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <span id="school-current-week-label" class="text-base font-black text-stone-800"></span>
+          <button onclick="resetToCurrentWeek()" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-lg">今週へ</button>
         </div>
-
-        <div id="school-table-header" class="grid grid-cols-12 gap-1 text-xs font-extrabold text-stone-500 bg-stone-50 p-2 rounded-xl border border-stone-200/70 text-center">
-          <div class="col-span-3">ひにち</div>
-          <div class="col-span-3 border-l border-stone-200">じかん</div>
-          <div class="col-span-6 border-l border-stone-200">よてい・メモ</div>
-        </div>
+        <span class="text-[11px] font-bold text-stone-400">↓ スクロールで次週へ</span>
       </div>
 
-      <!-- 年間一覧 -->
-      <div id="school-year-container" class="hidden grid grid-cols-3 gap-2 flex-1 overflow-y-auto custom-scrollbar pb-6"></div>
-
-      <!-- 手書き再現：日付・じかん・よていの行リスト -->
-      <div id="school-month-list-container" class="flex-1 overflow-y-auto custom-scrollbar space-y-1.5 pb-6">
-        <div id="school-days-list" class="space-y-1.5"></div>
+      <!-- 表の見出し -->
+      <div class="grid grid-cols-12 gap-1 text-xs font-extrabold text-stone-500 bg-stone-100 p-2 rounded-xl border border-stone-200/70 text-center mb-1">
+        <div class="col-span-3">ひにち</div>
+        <div class="col-span-4 border-l border-stone-200">じかん</div>
+        <div class="col-span-5 border-l border-stone-200">よてい・もちもの</div>
       </div>
+
+      <!-- 1週間ごとの区切りリスト（スクロール対応） -->
+      <div id="school-weeks-container" class="flex-1 overflow-y-auto custom-scrollbar space-y-4 pb-12"></div>
     </div>
 
   </main>
 
-  <!-- 学校の日付を押したときの入力・詳細ポップアップ -->
-  <div id="school-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl flex flex-col">
+  <!-- 学校予定の編集ポップアップ（ルーレットピッカー付き） -->
+  <div id="school-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl flex flex-col max-h-[90vh]">
       <div class="flex items-center justify-between mb-3 border-b border-stone-100 pb-2">
         <div>
-          <span class="text-xs font-bold text-emerald-600">学校の予定編集</span>
+          <span class="text-xs font-bold text-emerald-600">学校の予定</span>
           <h3 id="school-modal-title" class="text-xl font-black text-stone-800"></h3>
         </div>
         <button onclick="closeSchoolModal()" class="p-2 hover:bg-stone-100 rounded-full text-stone-400">
@@ -182,18 +170,51 @@
         </button>
       </div>
 
-      <form onsubmit="handleSchoolSave(event)" class="space-y-3">
+      <form onsubmit="handleSchoolSave(event)" class="space-y-3 overflow-y-auto custom-scrollbar pr-1">
+        
+        <!-- じかん入力エリア -->
         <div>
-          <label class="block text-xs font-bold text-stone-500 mb-1">じかん（下校時間など）</label>
-          <input
-            type="text"
-            id="school-input-time"
-            placeholder="例: 14:30、5時間授業 など"
-            class="w-full bg-stone-50 border-2 border-stone-200 focus:border-emerald-500 rounded-xl py-2.5 px-3 text-sm text-stone-800 outline-none"
-          >
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-xs font-extrabold text-stone-600">じかん（下校時刻など）</label>
+            <button type="button" onclick="toggleTimeInputMode()" id="toggle-input-mode-btn" class="text-[11px] font-bold text-emerald-600 hover:underline">
+              文字で手入力する
+            </button>
+          </div>
+
+          <!-- クイック選択タグ -->
+          <div class="flex flex-wrap gap-1 mb-2">
+            <button type="button" onclick="setQuickTime('5時間授業')" class="text-[11px] bg-stone-100 hover:bg-emerald-50 text-stone-600 font-bold px-2 py-0.5 rounded-lg border border-stone-200">5時間</button>
+            <button type="button" onclick="setQuickTime('6時間授業')" class="text-[11px] bg-stone-100 hover:bg-emerald-50 text-stone-600 font-bold px-2 py-0.5 rounded-lg border border-stone-200">6時間</button>
+            <button type="button" onclick="setQuickTime('給食後下校')" class="text-[11px] bg-stone-100 hover:bg-emerald-50 text-stone-600 font-bold px-2 py-0.5 rounded-lg border border-stone-200">給食後</button>
+            <button type="button" onclick="setQuickTime('午前授業')" class="text-[11px] bg-stone-100 hover:bg-emerald-50 text-stone-600 font-bold px-2 py-0.5 rounded-lg border border-stone-200">午前</button>
+          </div>
+
+          <!-- ルーレット風ホイールピッカー -->
+          <div id="wheel-picker-wrapper" class="relative bg-stone-50 border-2 border-stone-200 rounded-2xl p-2 h-36 flex items-center justify-center overflow-hidden">
+            <!-- 選択ライン -->
+            <div class="absolute inset-x-2 h-9 bg-emerald-500/15 border-y-2 border-emerald-500 rounded-lg pointer-events-none"></div>
+
+            <!-- 「時」ホイール -->
+            <div id="wheel-hours" class="wheel-container w-20 h-full overflow-y-scroll text-center py-12 custom-scrollbar"></div>
+            <span class="text-base font-black text-stone-700 mx-2">:</span>
+            <!-- 「分」ホイール（5分刻み） -->
+            <div id="wheel-minutes" class="wheel-container w-20 h-full overflow-y-scroll text-center py-12 custom-scrollbar"></div>
+          </div>
+
+          <!-- 手入力モード用インプット（デフォルトは非表示） -->
+          <div id="text-time-wrapper" class="hidden">
+            <input
+              type="text"
+              id="school-input-time-text"
+              placeholder="例: 14:30、5時間授業 など"
+              class="w-full bg-stone-50 border-2 border-stone-200 focus:border-emerald-500 rounded-xl py-2.5 px-3 text-sm text-stone-800 outline-none"
+            >
+          </div>
         </div>
+
+        <!-- よてい・もちもの入力エリア -->
         <div>
-          <label class="block text-xs font-bold text-stone-500 mb-1">よてい・もちもの</label>
+          <label class="block text-xs font-extrabold text-stone-600 mb-1">よてい・もちもの</label>
           <input
             type="text"
             id="school-input-event"
@@ -201,7 +222,8 @@
             class="w-full bg-stone-50 border-2 border-stone-200 focus:border-emerald-500 rounded-xl py-2.5 px-3 text-sm text-stone-800 outline-none"
           >
         </div>
-        <p class="text-[11px] text-stone-400 font-bold">※ ここに入力した予定は、カレンダーや「今日のこと」にも自動で反映されます。</p>
+
+        <p class="text-[10px] text-stone-400 font-bold">※ 入力した内容は「予定」のカレンダーにも自動反映されます。</p>
 
         <div class="flex space-x-2 pt-2">
           <button
@@ -223,7 +245,7 @@
   </div>
 
   <script>
-    const categories = ['shopping', 'today', 'school', 'schedule'];
+    const categories = ['shopping', 'school', 'schedule'];
     let currentCategory = 'shopping';
     let todos = JSON.parse(localStorage.getItem('kantan_todos') || '[]');
     let wordUsage = JSON.parse(localStorage.getItem('kantan_word_usage') || '{}');
@@ -237,16 +259,17 @@
     let calDisplayMonth = todayDate.getMonth();
 
     // 学校ページ用
-    let schoolDisplayYear = todayDate.getFullYear();
-    let schoolDisplayMonth = todayDate.getMonth();
-    let schoolViewMode = 'month';
     let selectedSchoolDate = todayISO;
+    let isTimeTextMode = false;
+    let selectedWheelHour = '14';
+    let selectedWheelMinute = '30';
 
     function init() {
       const days = ['日', '月', '火', '水', '木', '金', '土'];
       document.getElementById('today-display').textContent = 
         `${todayDate.getFullYear()}年${todayDate.getMonth() + 1}月${todayDate.getDate()}日 (${days[todayDate.getDay()]})`;
 
+      initWheelPicker();
       switchCategory('shopping');
       setupSwipeGestures();
     }
@@ -277,19 +300,17 @@
       }, { passive: true });
     }
 
-    // カテゴリ切り替え（タイトルとアイコンも連動）
+    // カテゴリ切り替え（3タブ）
     function switchCategory(cat) {
       currentCategory = cat;
       const tabs = {
         shopping: document.getElementById('tab-shopping'),
-        today: document.getElementById('tab-today'),
         school: document.getElementById('tab-school'),
         schedule: document.getElementById('tab-schedule')
       };
 
       const titleMap = {
         shopping: { title: 'お買い物', icon: 'shopping-basket', color: 'bg-amber-500', shadow: 'shadow-amber-200' },
-        today: { title: '今日のこと', icon: 'check-square', color: 'bg-amber-500', shadow: 'shadow-amber-200' },
         school: { title: '学校', icon: 'graduation-cap', color: 'bg-emerald-600', shadow: 'shadow-emerald-200' },
         schedule: { title: '予定', icon: 'calendar', color: 'bg-sky-500', shadow: 'shadow-sky-200' }
       };
@@ -301,18 +322,16 @@
       iconBox.className = `w-10 h-10 rounded-2xl ${meta.color} text-white flex items-center justify-center shadow-md ${meta.shadow}`;
       iconBox.innerHTML = `<i data-lucide="${meta.icon}" class="w-6 h-6"></i>`;
 
-      // タブボタンスタイル
       Object.keys(tabs).forEach(key => {
-        tabs[key].className = 'py-2.5 px-1 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all text-stone-500';
+        tabs[key].className = 'py-2.5 px-2 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all text-stone-500';
       });
 
       const activeTabColors = {
         shopping: 'bg-white text-amber-600 shadow-sm',
-        today: 'bg-white text-amber-600 shadow-sm',
         school: 'bg-white text-emerald-700 shadow-sm',
         schedule: 'bg-white text-sky-600 shadow-sm'
       };
-      tabs[cat].className = `py-2.5 px-1 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all ${activeTabColors[cat]}`;
+      tabs[cat].className = `py-2.5 px-2 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all ${activeTabColors[cat]}`;
 
       const standardView = document.getElementById('standard-view');
       const schoolView = document.getElementById('school-view');
@@ -322,7 +341,7 @@
       if (cat === 'school') {
         standardView.classList.add('hidden');
         schoolView.classList.remove('hidden');
-        renderSchoolPage();
+        renderSchoolWeeksView();
       } else {
         standardView.classList.remove('hidden');
         schoolView.classList.add('hidden');
@@ -333,8 +352,7 @@
           updateScheduleInputPlaceholder();
         } else {
           calWrapper.classList.add('hidden');
-          if (cat === 'shopping') input.placeholder = 'お買い物メモを入力...';
-          else if (cat === 'today') input.placeholder = '今日やることを入力...';
+          input.placeholder = '買うものを入力...';
         }
         renderFrequentChips();
         renderTodos();
@@ -342,120 +360,165 @@
       lucide.createIcons();
     }
 
-    // ===== 学校ページ関連 =====
-    function setSchoolViewMode(mode) {
-      schoolViewMode = mode;
-      const btnMonth = document.getElementById('btn-school-month-view');
-      const btnYear = document.getElementById('btn-school-year-view');
-      const tableHeader = document.getElementById('school-table-header');
-      const monthList = document.getElementById('school-month-list-container');
-      const yearContainer = document.getElementById('school-year-container');
+    // ===== 学校ページ：1週間ベース＆上スワイプで次週へ =====
+    function renderSchoolWeeksView() {
+      const container = document.getElementById('school-weeks-container');
+      container.innerHTML = '';
 
-      if (mode === 'month') {
-        btnMonth.className = 'px-3 py-1 rounded-lg bg-emerald-600 text-white shadow-xs';
-        btnYear.className = 'px-3 py-1 rounded-lg text-stone-600';
-        tableHeader.classList.remove('hidden');
-        monthList.classList.remove('hidden');
-        yearContainer.classList.add('hidden');
-        renderSchoolMonthList();
-      } else {
-        btnYear.className = 'px-3 py-1 rounded-lg bg-emerald-600 text-white shadow-xs';
-        btnMonth.className = 'px-3 py-1 rounded-lg text-stone-600';
-        tableHeader.classList.add('hidden');
-        monthList.classList.add('hidden');
-        yearContainer.classList.remove('hidden');
-        renderSchoolYearGrid();
+      // 今週の月曜を基準日として算出
+      const curr = new Date(todayDate);
+      const day = curr.getDay();
+      const diff = curr.getDate() - day + (day === 0 ? -6 : 1); // 月曜日
+      const monday = new Date(curr.setDate(diff));
+
+      document.getElementById('school-current-week-label').textContent = 
+        `${monday.getMonth() + 1}月${monday.getDate()}日の週〜`;
+
+      // 4週間分を一気に生成（上スクロールでスムーズに次週が現れる）
+      for (let w = 0; w < 4; w++) {
+        const weekStart = new Date(monday);
+        weekStart.setDate(monday.getDate() + (w * 7));
+
+        const weekBox = document.createElement('div');
+        weekBox.className = 'space-y-1.5';
+
+        const weekHeader = document.createElement('div');
+        weekHeader.className = 'text-xs font-black text-emerald-800 bg-emerald-50/80 px-3 py-1 rounded-lg border border-emerald-100 flex items-center justify-between';
+        weekHeader.innerHTML = `
+          <span>${w === 0 ? '【今週】' : w === 1 ? '【来週】' : `【${w + 1}週目】`} ${weekStart.getMonth() + 1}月${weekStart.getDate()}日〜</span>
+        `;
+        weekBox.appendChild(weekHeader);
+
+        const weekDays = ['月', '火', '水', '木', '金', '土', '日'];
+        for (let d = 0; d < 7; d++) {
+          const targetDay = new Date(weekStart);
+          targetDay.setDate(weekStart.getDate() + d);
+
+          const y = targetDay.getFullYear();
+          const m = String(targetDay.getMonth() + 1).padStart(2, '0');
+          const dateNum = String(targetDay.getDate()).padStart(2, '0');
+          const dStr = `${y}-${m}-${dateNum}`;
+          
+          const info = schoolData[dStr] || { time: '', event: '' };
+          const isToday = dStr === todayISO;
+          const dayName = weekDays[d];
+
+          let dayColor = 'text-stone-700';
+          if (dayName === '土') dayColor = 'text-sky-500 font-extrabold';
+          if (dayName === '日') dayColor = 'text-red-500 font-extrabold';
+
+          const row = document.createElement('div');
+          row.className = `grid grid-cols-12 gap-1 p-2.5 rounded-xl border items-center cursor-pointer transition-all active:scale-[0.99] ${
+            isToday ? 'bg-amber-50/90 border-amber-300 shadow-2xs' : 'bg-white border-stone-200/80 hover:border-emerald-300'
+          }`;
+          row.onclick = () => openSchoolModal(dStr);
+
+          row.innerHTML = `
+            <div class="col-span-3 text-xs font-black ${dayColor} flex items-center">
+              <span>${targetDay.getDate()} (${dayName})</span>
+              ${isToday ? '<span class="ml-1 w-1.5 h-1.5 rounded-full bg-amber-500"></span>' : ''}
+            </div>
+            <div class="col-span-4 text-xs font-bold text-stone-700 truncate pl-1 border-l border-stone-100">
+              ${info.time ? escapeHtml(info.time) : '<span class="text-stone-300 font-normal">-</span>'}
+            </div>
+            <div class="col-span-5 text-xs font-bold text-stone-800 truncate pl-1 border-l border-stone-100 flex items-center justify-between">
+              <span class="truncate">${info.event ? escapeHtml(info.event) : '<span class="text-stone-300 font-normal">よていなし</span>'}</span>
+              <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-stone-300 flex-shrink-0"></i>
+            </div>
+          `;
+          weekBox.appendChild(row);
+        }
+
+        container.appendChild(weekBox);
       }
       lucide.createIcons();
     }
 
-    function changeSchoolMonth(delta) {
-      schoolDisplayMonth += delta;
-      if (schoolDisplayMonth < 0) { schoolDisplayMonth = 11; schoolDisplayYear--; }
-      else if (schoolDisplayMonth > 11) { schoolDisplayMonth = 0; schoolDisplayYear++; }
-      renderSchoolPage();
+    function resetToCurrentWeek() {
+      const container = document.getElementById('school-weeks-container');
+      container.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function renderSchoolPage() {
-      document.getElementById('school-month-title').textContent = `${schoolDisplayYear}年 ${schoolDisplayMonth + 1}月`;
-      if (schoolViewMode === 'month') {
-        renderSchoolMonthList();
+    // ===== ルーレット風ホイールピッカー =====
+    function initWheelPicker() {
+      const hWheel = document.getElementById('wheel-hours');
+      const mWheel = document.getElementById('wheel-minutes');
+      hWheel.innerHTML = '';
+      mWheel.innerHTML = '';
+
+      // 時間 (07〜18時)
+      for (let h = 7; h <= 18; h++) {
+        const val = String(h).padStart(2, '0');
+        const item = document.createElement('div');
+        item.className = 'wheel-item h-9 flex items-center justify-center font-extrabold text-lg text-stone-700';
+        item.textContent = val;
+        item.dataset.value = val;
+        hWheel.appendChild(item);
+      }
+
+      // 分 (00〜55分・5分刻み)
+      for (let m = 0; m < 60; m += 5) {
+        const val = String(m).padStart(2, '0');
+        const item = document.createElement('div');
+        item.className = 'wheel-item h-9 flex items-center justify-center font-extrabold text-lg text-stone-700';
+        item.textContent = val;
+        item.dataset.value = val;
+        mWheel.appendChild(item);
+      }
+
+      // スクロール検知で値を更新
+      hWheel.addEventListener('scroll', () => {
+        const idx = Math.round(hWheel.scrollTop / 36);
+        const child = hWheel.children[idx];
+        if (child) selectedWheelHour = child.dataset.value;
+      });
+
+      mWheel.addEventListener('scroll', () => {
+        const idx = Math.round(mWheel.scrollTop / 36);
+        const child = mWheel.children[idx];
+        if (child) selectedWheelMinute = child.dataset.value;
+      });
+    }
+
+    function setWheelPosition(hour, minute) {
+      const hWheel = document.getElementById('wheel-hours');
+      const mWheel = document.getElementById('wheel-minutes');
+
+      const hIndex = Math.max(0, parseInt(hour, 10) - 7);
+      const mIndex = Math.max(0, Math.floor(parseInt(minute, 10) / 5));
+
+      hWheel.scrollTop = hIndex * 36;
+      mWheel.scrollTop = mIndex * 36;
+      selectedWheelHour = String(hour).padStart(2, '0');
+      selectedWheelMinute = String(minute).padStart(2, '0');
+    }
+
+    function toggleTimeInputMode() {
+      isTimeTextMode = !isTimeTextMode;
+      const wheelWrapper = document.getElementById('wheel-picker-wrapper');
+      const textWrapper = document.getElementById('text-time-wrapper');
+      const btn = document.getElementById('toggle-input-mode-btn');
+
+      if (isTimeTextMode) {
+        wheelWrapper.classList.add('hidden');
+        textWrapper.classList.remove('hidden');
+        btn.textContent = 'ルーレットで選ぶ';
       } else {
-        renderSchoolYearGrid();
+        wheelWrapper.classList.remove('hidden');
+        textWrapper.classList.add('hidden');
+        btn.textContent = '文字で手入力する';
       }
     }
 
-    // 手書き再現：ひにち・じかん・よていの行リスト
-    function renderSchoolMonthList() {
-      const container = document.getElementById('school-days-list');
-      container.innerHTML = '';
-
-      const lastDate = new Date(schoolDisplayYear, schoolDisplayMonth + 1, 0).getDate();
-      const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
-
-      for (let d = 1; d <= lastDate; d++) {
-        const dStr = `${schoolDisplayYear}-${String(schoolDisplayMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const dayOfWeek = new Date(schoolDisplayYear, schoolDisplayMonth, d).getDay();
-        const info = schoolData[dStr] || { time: '', event: '' };
-        const isToday = dStr === todayISO;
-
-        let dayColor = 'text-stone-700';
-        if (dayOfWeek === 0) dayColor = 'text-red-500 font-extrabold';
-        if (dayOfWeek === 6) dayColor = 'text-sky-500 font-extrabold';
-
-        const row = document.createElement('div');
-        row.className = `grid grid-cols-12 gap-1 p-2.5 rounded-xl border items-center cursor-pointer transition-all active:scale-[0.99] ${
-          isToday ? 'bg-amber-50/90 border-amber-300 shadow-2xs' : 'bg-white border-stone-200/80 hover:border-emerald-300'
-        }`;
-        row.onclick = () => openSchoolModal(dStr);
-
-        row.innerHTML = `
-          <div class="col-span-3 text-xs font-black ${dayColor} flex items-center">
-            <span>${d} (${weekDays[dayOfWeek]})</span>
-            ${isToday ? '<span class="ml-1 w-1.5 h-1.5 rounded-full bg-amber-500"></span>' : ''}
-          </div>
-          <div class="col-span-3 text-xs font-bold text-stone-700 truncate pl-1 border-l border-stone-100">
-            ${info.time ? escapeHtml(info.time) : '<span class="text-stone-300 font-normal">-</span>'}
-          </div>
-          <div class="col-span-6 text-xs font-bold text-stone-800 truncate pl-1 border-l border-stone-100 flex items-center justify-between">
-            <span class="truncate">${info.event ? escapeHtml(info.event) : '<span class="text-stone-300 font-normal">よていなし</span>'}</span>
-            <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-stone-300 flex-shrink-0"></i>
-          </div>
-        `;
-        container.appendChild(row);
-      }
-      lucide.createIcons();
+    function setQuickTime(text) {
+      isTimeTextMode = true;
+      document.getElementById('wheel-picker-wrapper').classList.add('hidden');
+      document.getElementById('text-time-wrapper').classList.remove('hidden');
+      document.getElementById('toggle-input-mode-btn').textContent = 'ルーレットで選ぶ';
+      document.getElementById('school-input-time-text').value = text;
     }
 
-    // 年間ビュー
-    function renderSchoolYearGrid() {
-      const container = document.getElementById('school-year-container');
-      container.innerHTML = '';
-
-      for (let m = 0; m < 12; m++) {
-        const card = document.createElement('div');
-        card.className = 'bg-white border border-stone-200 rounded-2xl p-3 flex flex-col items-center justify-center cursor-pointer hover:border-emerald-500 active:scale-95 transition-all shadow-xs';
-        card.onclick = () => {
-          schoolDisplayMonth = m;
-          setSchoolViewMode('month');
-        };
-
-        const count = Object.keys(schoolData).filter(key => {
-          const parts = key.split('-');
-          return parseInt(parts[0], 10) === schoolDisplayYear && parseInt(parts[1], 10) === m + 1 && (schoolData[key].event || schoolData[key].time);
-        }).length;
-
-        card.innerHTML = `
-          <span class="text-base font-extrabold text-stone-800 mb-1">${m + 1}月</span>
-          <span class="text-[10px] font-bold ${count > 0 ? 'text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full' : 'text-stone-400'}">
-            ${count > 0 ? `予定 ${count}日` : 'なし'}
-          </span>
-        `;
-        container.appendChild(card);
-      }
-    }
-
-    // 学校予定の編集ポップアップ
+    // 学校モーダル開閉
     function openSchoolModal(dateStr) {
       selectedSchoolDate = dateStr;
       const parts = dateStr.split('-');
@@ -464,8 +527,30 @@
       document.getElementById('school-modal-title').textContent = `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日 (${weekDays[dObj.getDay()]})`;
 
       const info = schoolData[dateStr] || { time: '', event: '' };
-      document.getElementById('school-input-time').value = info.time || '';
       document.getElementById('school-input-event').value = info.event || '';
+
+      // 時間の判定（HH:mm形式ならルーレット、文字なら手入力欄）
+      if (info.time && info.time.includes(':')) {
+        const [h, m] = info.time.split(':');
+        isTimeTextMode = false;
+        document.getElementById('wheel-picker-wrapper').classList.remove('hidden');
+        document.getElementById('text-time-wrapper').classList.add('hidden');
+        document.getElementById('toggle-input-mode-btn').textContent = '文字で手入力する';
+        setTimeout(() => setWheelPosition(h, m), 50);
+      } else if (info.time) {
+        isTimeTextMode = true;
+        document.getElementById('wheel-picker-wrapper').classList.add('hidden');
+        document.getElementById('text-time-wrapper').classList.remove('hidden');
+        document.getElementById('toggle-input-mode-btn').textContent = 'ルーレットで選ぶ';
+        document.getElementById('school-input-time-text').value = info.time;
+      } else {
+        // デフォルト（14:30）
+        isTimeTextMode = false;
+        document.getElementById('wheel-picker-wrapper').classList.remove('hidden');
+        document.getElementById('text-time-wrapper').classList.add('hidden');
+        document.getElementById('toggle-input-mode-btn').textContent = '文字で手入力する';
+        setTimeout(() => setWheelPosition('14', '30'), 50);
+      }
 
       document.getElementById('school-modal').classList.remove('hidden');
     }
@@ -476,27 +561,33 @@
 
     function handleSchoolSave(e) {
       e.preventDefault();
-      const time = document.getElementById('school-input-time').value.trim();
-      const event = document.getElementById('school-input-event').value.trim();
+      let timeVal = '';
+      if (isTimeTextMode) {
+        timeVal = document.getElementById('school-input-time-text').value.trim();
+      } else {
+        timeVal = `${selectedWheelHour}:${selectedWheelMinute}`;
+      }
 
-      if (!time && !event) {
+      const eventVal = document.getElementById('school-input-event').value.trim();
+
+      if (!timeVal && !eventVal) {
         delete schoolData[selectedSchoolDate];
       } else {
-        schoolData[selectedSchoolDate] = { time, event };
+        schoolData[selectedSchoolDate] = { time: timeVal, event: eventVal };
       }
 
       localStorage.setItem('kantan_school_data', JSON.stringify(schoolData));
       closeSchoolModal();
-      renderSchoolPage();
+      renderSchoolWeeksView();
     }
 
     function handleSchoolClear() {
-      document.getElementById('school-input-time').value = '';
       document.getElementById('school-input-event').value = '';
+      document.getElementById('school-input-time-text').value = '';
       delete schoolData[selectedSchoolDate];
       localStorage.setItem('kantan_school_data', JSON.stringify(schoolData));
       closeSchoolModal();
-      renderSchoolPage();
+      renderSchoolWeeksView();
     }
 
     // ===== 予定タブ（カレンダー連動） =====
@@ -538,7 +629,6 @@
       for (let d = 1; d <= lastDate; d++) {
         const dStr = `${calDisplayYear}-${String(calDisplayMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         
-        // 学校の予定があるか、または通常の予定があるか
         const hasSchool = schoolData[dStr] && (schoolData[dStr].event || schoolData[dStr].time);
         const hasSchedule = todos.some(t => t.category === 'schedule' && t.date === dStr && !t.completed);
         const hasAny = hasSchool || hasSchedule;
@@ -664,35 +754,10 @@
       if (currentCategory === 'shopping') {
         activeItems = todos.filter(t => t.category === 'shopping');
         badgeLabel = 'お買い物リスト';
-      } else if (currentCategory === 'today') {
-        const normalToday = todos.filter(t => t.category === 'today');
-        const scheduleToday = todos.filter(t => t.category === 'schedule' && t.date === todayISO);
-        
-        scheduleToday.forEach(s => { s.isLinked = true; s.sourceLabel = '📅 予定'; s.sourceColor = 'text-sky-600 bg-sky-50'; });
-        normalToday.forEach(n => { n.isLinked = false; });
-        
-        // 学校の予定が今日あれば自動反映
-        let schoolTodayList = [];
-        if (schoolData[todayISO]) {
-          const s = schoolData[todayISO];
-          const fullText = [s.time ? `【${s.time}】` : '', s.event].filter(Boolean).join(' ');
-          if (fullText) {
-            schoolTodayList.push({
-              id: 'school_today_item',
-              text: fullText,
-              isSchoolStatic: true,
-              sourceLabel: '🏫 学校',
-              sourceColor: 'text-emerald-700 bg-emerald-50'
-            });
-          }
-        }
-
-        activeItems = [...schoolTodayList, ...scheduleToday, ...normalToday];
-        badgeLabel = '今日のこと（学校・予定を含む）';
       } else if (currentCategory === 'schedule') {
         activeItems = todos.filter(t => t.category === 'schedule' && t.date === selectedScheduleDate);
         
-        // その日の学校の予定があればカレンダー上にも表示
+        // 学校の予定があれば上部に表示
         if (schoolData[selectedScheduleDate]) {
           const s = schoolData[selectedScheduleDate];
           const fullText = [s.time ? `【${s.time}】` : '', s.event].filter(Boolean).join(' ');
@@ -742,7 +807,6 @@
           todo.completed ? 'bg-stone-100/80 border-stone-200 opacity-60' : 'bg-white border-stone-200 shadow-sm'
         }`;
 
-        // 学校から自動反映された固定表示アイテム
         if (todo.isSchoolStatic) {
           li.innerHTML = `
             <div class="flex items-center space-x-3 flex-1 min-w-0">
@@ -759,8 +823,6 @@
           return;
         }
 
-        const isLinkedItem = currentCategory === 'today' && todo.isLinked;
-
         li.innerHTML = `
           <div class="flex items-center space-x-3 flex-1 min-w-0 mr-2 cursor-pointer" onclick="toggleTodo('${todo.id}')">
             <div class="w-7 h-7 rounded-xl border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
@@ -768,12 +830,9 @@
             }">
               ${todo.completed ? '<i data-lucide="check" class="w-5 h-5 stroke-[3]"></i>' : ''}
             </div>
-            <div class="flex-1 min-w-0 flex flex-col">
-              ${isLinkedItem ? `<span class="text-[10px] font-black ${todo.sourceColor} px-1.5 py-0.5 rounded w-max mb-0.5">${todo.sourceLabel}</span>` : ''}
-              <span class="text-base font-bold text-stone-800 break-words ${todo.completed ? 'line-through text-stone-400 font-medium' : ''}">
-                ${escapeHtml(todo.text)}
-              </span>
-            </div>
+            <span class="text-base font-bold text-stone-800 break-words flex-1 min-w-0 ${todo.completed ? 'line-through text-stone-400 font-medium' : ''}">
+              ${escapeHtml(todo.text)}
+            </span>
           </div>
           <button onclick="deleteTodo('${todo.id}')" class="p-2 text-stone-300 hover:text-red-500 active:scale-90 transition-all rounded-lg" title="削除">
             <i data-lucide="trash-2" class="w-5 h-5"></i>
