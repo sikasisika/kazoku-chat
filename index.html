@@ -180,9 +180,9 @@
       <ul id="todo-list" class="space-y-2 overflow-y-auto flex-1 custom-scrollbar pb-6"></ul>
     </div>
 
-    <!-- ===== 学校ビュー（週・月・年） ===== -->
+    <!-- ===== 学校ビュー ===== -->
     <div id="school-view" class="hidden flex-1 flex flex-col min-h-0">
-      <!-- 上部バー：週/月/年 切り替えスイッチ ＆ ナビゲーション -->
+      <!-- 上部バー -->
       <div class="bg-white rounded-2xl p-2 shadow-sm border border-stone-200/80 mb-2 flex items-center justify-between flex-shrink-0">
         
         <div class="flex bg-stone-100 p-0.5 rounded-xl text-xs font-bold">
@@ -204,7 +204,7 @@
         <button onclick="resetSchoolPeriod()" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-lg">今</button>
       </div>
 
-      <!-- 1. 週表示モード（太いバー・土日色分け・縦スワイプ対応） -->
+      <!-- 1. 週表示モード -->
       <div id="school-week-stage" class="flex-1 flex flex-col justify-between py-0.5 space-y-1.5 touch-none overflow-hidden"></div>
 
       <!-- 2. 月表示モード（閲覧専用） -->
@@ -216,7 +216,7 @@
 
   </main>
 
-  <!-- 学校：入力済み内容の確認用モーダル（時間・予定・メモの順 ＋ ︙メニュー） -->
+  <!-- 学校：入力済み詳細モーダル -->
   <div id="school-detail-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl flex flex-col relative">
       <div class="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
@@ -225,7 +225,6 @@
           <h3 id="school-detail-date-title" class="text-xl font-black text-stone-800"></h3>
         </div>
         <div class="flex items-center space-x-1 relative">
-          <!-- ︙ボタン -->
           <button type="button" class="p-2 text-stone-500 hover:text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-xl" onclick="toggleSchoolDetailMenu(event)">
             <i data-lucide="more-vertical" class="w-5 h-5"></i>
           </button>
@@ -233,7 +232,6 @@
             <i data-lucide="x" class="w-6 h-6"></i>
           </button>
 
-          <!-- ︙ドロップダウンメニュー（編集・消去） -->
           <div id="school-detail-menu" class="hidden absolute right-0 top-10 z-30 bg-white border border-stone-200 rounded-2xl shadow-xl py-1.5 w-32 text-sm font-bold text-stone-700">
             <button type="button" onclick="editFromSchoolDetail()" class="w-full text-left px-3.5 py-2 hover:bg-emerald-50 text-emerald-700 flex items-center">
               <i data-lucide="edit-3" class="w-4 h-4 mr-2"></i>編集
@@ -245,7 +243,6 @@
         </div>
       </div>
 
-      <!-- 時間・予定・メモの順で表示 -->
       <div class="space-y-3.5 py-1">
         <div class="bg-emerald-50/70 p-3 rounded-2xl border border-emerald-100">
           <span class="text-[11px] font-black text-emerald-800 block mb-0.5">じかん</span>
@@ -646,7 +643,7 @@
       return monday;
     }
 
-    // 1. 週表示（土日は背景ごと赤・青、初回入力・2回目以降確認）
+    // 1. 週表示（今日の日付は黄色い枠線で囲むスタイル）
     function renderSchoolWeek() {
       const stage = document.getElementById('school-week-stage');
       stage.innerHTML = '';
@@ -681,29 +678,28 @@
         const isOtherMonth = (m !== primaryMonth);
         const dayName = weekDays[i];
 
-        // 土日の箱ごとの背景・枠色設定
-        let boxStyle = 'bg-white border-stone-200 hover:border-emerald-300';
+        let boxStyle = 'bg-white border border-stone-200 hover:border-emerald-300';
         let dayColor = 'text-stone-800';
 
         if (dayName === '土') {
-          boxStyle = 'bg-sky-50/80 border-sky-200 hover:border-sky-400';
+          boxStyle = 'bg-sky-50/80 border border-sky-200 hover:border-sky-400';
           dayColor = 'text-sky-600 font-extrabold';
         } else if (dayName === '日') {
-          boxStyle = 'bg-red-50/80 border-red-200 hover:border-red-400';
+          boxStyle = 'bg-red-50/80 border border-red-200 hover:border-red-400';
           dayColor = 'text-red-600 font-extrabold';
         }
 
+        // 今日の日付：黄色い枠線で囲う（塗りはベースのまま）
         if (isToday) {
-          boxStyle = 'bg-amber-50/90 border-amber-300 shadow-sm ring-1 ring-amber-300';
+          boxStyle += ' ring-2 ring-amber-400 border-amber-400 shadow-sm';
         } else if (isOtherMonth) {
-          boxStyle = 'bg-stone-100/60 border-stone-200/50 opacity-50';
+          boxStyle = 'bg-stone-100/60 border border-stone-200/50 opacity-50';
           dayColor = 'text-stone-400';
         }
 
         const row = document.createElement('div');
-        row.className = `flex-1 w-full px-3 py-1 rounded-2xl border flex flex-col justify-center cursor-pointer transition-all active:scale-[0.98] ${boxStyle}`;
+        row.className = `flex-1 w-full px-3 py-1 rounded-2xl flex flex-col justify-center cursor-pointer transition-all active:scale-[0.98] ${boxStyle}`;
         
-        // タップ時の挙動：データ未入力なら直接編集、入力済みなら詳細確認ポップアップ
         row.onclick = () => {
           if (hasData) {
             openSchoolDetailModal(dStr);
@@ -722,7 +718,6 @@
                 ${isToday ? '<span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 align-middle ml-0.5"></span>' : ''}
               </span>
               
-              <!-- 時間を大きく目立つデザインに -->
               <span class="text-sm font-black ${info.time ? 'text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-lg border border-emerald-200' : 'text-stone-300'} flex-shrink-0">
                 ${info.time ? escapeHtml(info.time) : '-'}
               </span>
@@ -745,7 +740,7 @@
       }
     }
 
-    // 2. 月表示（閲覧専用）
+    // 2. 月表示（閲覧専用・今日の日付は黄色い枠線）
     function renderSchoolMonthList() {
       const stage = document.getElementById('school-month-stage');
       stage.innerHTML = '';
@@ -759,23 +754,23 @@
         const info = schoolData[dStr] || { time: '', event: '', memo: '' };
         const isToday = dStr === todayISO;
 
-        let boxStyle = 'bg-white border-stone-200/80';
+        let boxStyle = 'bg-white border border-stone-200/80';
         let dayColor = 'text-stone-800';
 
         if (dayOfWeek === 6) {
-          boxStyle = 'bg-sky-50/70 border-sky-200';
+          boxStyle = 'bg-sky-50/70 border border-sky-200';
           dayColor = 'text-sky-600 font-extrabold';
         } else if (dayOfWeek === 0) {
-          boxStyle = 'bg-red-50/70 border-red-200';
+          boxStyle = 'bg-red-50/70 border border-red-200';
           dayColor = 'text-red-600 font-extrabold';
         }
 
         if (isToday) {
-          boxStyle = 'bg-amber-50/90 border-amber-300 shadow-sm';
+          boxStyle += ' ring-2 ring-amber-400 border-amber-400 shadow-sm';
         }
 
         const row = document.createElement('div');
-        row.className = `p-2.5 rounded-2xl border flex flex-col justify-center ${boxStyle}`;
+        row.className = `p-2.5 rounded-2xl flex flex-col justify-center ${boxStyle}`;
 
         row.innerHTML = `
           <div class="flex items-center justify-between min-w-0">
@@ -848,7 +843,7 @@
       }
     }
 
-    // ===== 学校：入力済み詳細モーダル（時間・予定・メモ ＋ ︙メニュー） =====
+    // ===== 学校：入力済み詳細モーダル =====
     function openSchoolDetailModal(dateStr) {
       selectedSchoolDate = dateStr;
       const parts = dateStr.split('-');
@@ -1061,6 +1056,7 @@
       renderCalendarAutoList();
     }
 
+    // カレンダーの描画（今日の日付は黄色い枠線で囲むスタイル）
     function renderCalendar() {
       document.getElementById('cal-month-year').textContent = `${calDisplayYear}年 ${calDisplayMonth + 1}月`;
       const grid = document.getElementById('cal-days-grid');
@@ -1086,7 +1082,6 @@
         const isSelected = dStr === selectedScheduleDate;
         const isToday = dStr === todayISO;
 
-        // 土日は背景ごと色づけ
         let btnStyle = 'bg-stone-50 border border-stone-200/60 text-stone-700';
         if (dayOfWeek === 6) {
           btnStyle = 'bg-sky-50 border border-sky-200 text-sky-600 font-extrabold';
@@ -1094,10 +1089,12 @@
           btnStyle = 'bg-red-50 border border-red-200 text-red-600 font-extrabold';
         }
 
+        // 選択中・今日の枠線
         if (isSelected) {
           btnStyle = 'bg-sky-500 text-white font-black shadow-sm border border-sky-600';
         } else if (isToday) {
-          btnStyle = 'bg-amber-100 text-amber-900 font-extrabold ring-1 ring-amber-400 border border-amber-300';
+          // 黄色い枠線で囲う
+          btnStyle += ' ring-2 ring-amber-400 border-amber-400 font-extrabold';
         }
 
         const btn = document.createElement('button');
