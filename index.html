@@ -6,6 +6,12 @@
   <meta name="theme-color" content="#faf6ef">
   <title>かんたんメモ</title>
   
+  <!-- PWA（ホーム画面追加・アプリ風起動）用の設定 -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="かんたんメモ">
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -182,7 +188,6 @@
 
     <!-- ===== 学校ビュー ===== -->
     <div id="school-view" class="hidden flex-1 flex flex-col min-h-0">
-      <!-- 上部バー -->
       <div class="bg-white rounded-2xl p-2 shadow-sm border border-stone-200/80 mb-2 flex items-center justify-between flex-shrink-0">
         
         <div class="flex bg-stone-100 p-0.5 rounded-xl text-xs font-bold">
@@ -204,13 +209,8 @@
         <button onclick="resetSchoolPeriod()" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-lg">今</button>
       </div>
 
-      <!-- 1. 週表示モード -->
       <div id="school-week-stage" class="flex-1 flex flex-col justify-between py-0.5 space-y-1.5 touch-none overflow-hidden"></div>
-
-      <!-- 2. 月表示モード（閲覧専用） -->
       <div id="school-month-stage" class="hidden flex-1 overflow-y-auto custom-scrollbar space-y-1.5 pb-6"></div>
-
-      <!-- 3. 年表示モード（予定のみ・時間非表示） -->
       <div id="school-year-stage" class="hidden flex-1 overflow-y-auto custom-scrollbar space-y-3 pb-6"></div>
     </div>
 
@@ -275,7 +275,7 @@
         </button>
       </div>
 
-      <form onsubmit="handleSchoolSave(event)" class="space-y-3 overflow-y-custom custom-scrollbar pr-1 flex-1">
+      <form onsubmit="handleSchoolSave(event)" class="space-y-3 overflow-y-auto custom-scrollbar pr-1 flex-1">
         <div>
           <div class="flex items-center justify-between mb-1">
             <label class="text-xs font-extrabold text-stone-600">じかん</label>
@@ -643,7 +643,6 @@
       return monday;
     }
 
-    // 1. 週表示
     function renderSchoolWeek() {
       const stage = document.getElementById('school-week-stage');
       stage.innerHTML = '';
@@ -739,7 +738,6 @@
       }
     }
 
-    // 2. 月表示（閲覧専用）
     function renderSchoolMonthList() {
       const stage = document.getElementById('school-month-stage');
       stage.innerHTML = '';
@@ -797,7 +795,6 @@
       }
     }
 
-    // 3. 年表示（予定のみを反映・時間は非表示）
     function renderSchoolYearList() {
       const stage = document.getElementById('school-year-stage');
       stage.innerHTML = '';
@@ -807,7 +804,6 @@
         const monthBox = document.createElement('div');
         monthBox.className = 'bg-white rounded-2xl p-3 border border-stone-200 shadow-2xs space-y-2';
 
-        // 予定(event)がある日を抽出
         const monthEvents = Object.keys(schoolData).filter(key => {
           const parts = key.split('-');
           return parseInt(parts[0], 10) === schoolDisplayYear && parseInt(parts[1], 10) === monthNum && Boolean(schoolData[key].event);
@@ -820,7 +816,6 @@
           eventsHtml = monthEvents.map(dateKey => {
             const dNum = parseInt(dateKey.split('-')[2], 10);
             const item = schoolData[dateKey];
-            // 時間は含めず、予定(event)のみ表示
             return `
               <div class="flex items-center space-x-2 text-xs py-1 border-b border-stone-100 last:border-none">
                 <span class="font-extrabold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg w-12 text-center flex-shrink-0">${monthNum}/${dNum}</span>
@@ -843,7 +838,6 @@
       }
     }
 
-    // ===== 学校：入力済み詳細モーダル =====
     function openSchoolDetailModal(dateStr) {
       selectedSchoolDate = dateStr;
       const parts = dateStr.split('-');
@@ -894,7 +888,6 @@
       }
     }
 
-    // ===== ルーレットピッカー =====
     function initWheelPicker() {
       const hWheel = document.getElementById('wheel-hours');
       const mWheel = document.getElementById('wheel-minutes');
@@ -1040,7 +1033,6 @@
       renderCalendarAutoList();
     }
 
-    // ===== カレンダー画面 =====
     function changeMonth(delta) {
       calDisplayMonth += delta;
       if (calDisplayMonth < 0) { calDisplayMonth = 11; calDisplayYear--; }
@@ -1245,7 +1237,6 @@
       }
     }
 
-    // ===== 通常タスク管理（お買い物） =====
     function handleFormSubmit(e) {
       e.preventDefault();
       const input = document.getElementById('todo-input');
