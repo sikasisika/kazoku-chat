@@ -210,7 +210,7 @@
       <!-- 2. 月表示モード（閲覧専用） -->
       <div id="school-month-stage" class="hidden flex-1 overflow-y-auto custom-scrollbar space-y-1.5 pb-6"></div>
 
-      <!-- 3. 年表示モード（閲覧専用） -->
+      <!-- 3. 年表示モード（予定のみ・時間非表示） -->
       <div id="school-year-stage" class="hidden flex-1 overflow-y-auto custom-scrollbar space-y-3 pb-6"></div>
     </div>
 
@@ -275,7 +275,7 @@
         </button>
       </div>
 
-      <form onsubmit="handleSchoolSave(event)" class="space-y-3 overflow-y-auto custom-scrollbar pr-1 flex-1">
+      <form onsubmit="handleSchoolSave(event)" class="space-y-3 overflow-y-custom custom-scrollbar pr-1 flex-1">
         <div>
           <div class="flex items-center justify-between mb-1">
             <label class="text-xs font-extrabold text-stone-600">じかん</label>
@@ -643,7 +643,7 @@
       return monday;
     }
 
-    // 1. 週表示（今日の日付は黄色い枠線で囲むスタイル）
+    // 1. 週表示
     function renderSchoolWeek() {
       const stage = document.getElementById('school-week-stage');
       stage.innerHTML = '';
@@ -689,7 +689,6 @@
           dayColor = 'text-red-600 font-extrabold';
         }
 
-        // 今日の日付：黄色い枠線で囲う（塗りはベースのまま）
         if (isToday) {
           boxStyle += ' ring-2 ring-amber-400 border-amber-400 shadow-sm';
         } else if (isOtherMonth) {
@@ -740,7 +739,7 @@
       }
     }
 
-    // 2. 月表示（閲覧専用・今日の日付は黄色い枠線）
+    // 2. 月表示（閲覧専用）
     function renderSchoolMonthList() {
       const stage = document.getElementById('school-month-stage');
       stage.innerHTML = '';
@@ -798,7 +797,7 @@
       }
     }
 
-    // 3. 年表示（閲覧専用）
+    // 3. 年表示（予定のみを反映・時間は非表示）
     function renderSchoolYearList() {
       const stage = document.getElementById('school-year-stage');
       stage.innerHTML = '';
@@ -808,23 +807,24 @@
         const monthBox = document.createElement('div');
         monthBox.className = 'bg-white rounded-2xl p-3 border border-stone-200 shadow-2xs space-y-2';
 
+        // 予定(event)がある日を抽出
         const monthEvents = Object.keys(schoolData).filter(key => {
           const parts = key.split('-');
-          return parseInt(parts[0], 10) === schoolDisplayYear && parseInt(parts[1], 10) === monthNum && (schoolData[key].event || schoolData[key].time);
+          return parseInt(parts[0], 10) === schoolDisplayYear && parseInt(parts[1], 10) === monthNum && Boolean(schoolData[key].event);
         }).sort();
 
         let eventsHtml = '';
         if (monthEvents.length === 0) {
-          eventsHtml = '<p class="text-xs text-stone-300 font-bold pl-1">登録された予定はありません</p>';
+          eventsHtml = '<p class="text-xs text-stone-300 font-bold pl-1">予定はありません</p>';
         } else {
           eventsHtml = monthEvents.map(dateKey => {
             const dNum = parseInt(dateKey.split('-')[2], 10);
             const item = schoolData[dateKey];
-            const textParts = [item.time ? `【${item.time}】` : '', item.event].filter(Boolean).join(' ');
+            // 時間は含めず、予定(event)のみ表示
             return `
               <div class="flex items-center space-x-2 text-xs py-1 border-b border-stone-100 last:border-none">
                 <span class="font-extrabold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg w-12 text-center flex-shrink-0">${monthNum}/${dNum}</span>
-                <span class="font-bold text-stone-800 truncate flex-1">${escapeHtml(textParts)}</span>
+                <span class="font-bold text-stone-800 truncate flex-1">${escapeHtml(item.event)}</span>
               </div>
             `;
           }).join('');
@@ -834,7 +834,7 @@
           <div class="flex items-center justify-between border-b border-stone-100 pb-1.5">
             <span class="text-base font-black text-stone-800">${monthNum}月</span>
             <span class="text-xs font-bold ${monthEvents.length > 0 ? 'text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full' : 'text-stone-400'}">
-              ${monthEvents.length > 0 ? `${monthEvents.length}件の予定` : '予定なし'}
+              ${monthEvents.length > 0 ? `${monthEvents.length}件` : 'なし'}
             </span>
           </div>
           <div class="space-y-1">${eventsHtml}</div>
@@ -1056,7 +1056,6 @@
       renderCalendarAutoList();
     }
 
-    // カレンダーの描画（今日の日付は黄色い枠線で囲むスタイル）
     function renderCalendar() {
       document.getElementById('cal-month-year').textContent = `${calDisplayYear}年 ${calDisplayMonth + 1}月`;
       const grid = document.getElementById('cal-days-grid');
@@ -1089,11 +1088,9 @@
           btnStyle = 'bg-red-50 border border-red-200 text-red-600 font-extrabold';
         }
 
-        // 選択中・今日の枠線
         if (isSelected) {
           btnStyle = 'bg-sky-500 text-white font-black shadow-sm border border-sky-600';
         } else if (isToday) {
-          // 黄色い枠線で囲う
           btnStyle += ' ring-2 ring-amber-400 border-amber-400 font-extrabold';
         }
 
