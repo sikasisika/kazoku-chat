@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -72,26 +73,62 @@
 
     <!-- ===== 通常ビュー（お買い物・カレンダー） ===== -->
     <div id="standard-view" class="flex-1 flex flex-col min-h-0">
-      <!-- カレンダー画面 -->
-      <div id="calendar-wrapper" class="hidden mb-2 bg-white rounded-2xl p-3 shadow-sm border border-stone-200/80 flex-shrink-0">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center space-x-2">
-            <span id="cal-month-year" class="font-extrabold text-stone-800 text-lg"></span>
-            <button onclick="goToTodayMonth()" class="text-xs bg-amber-100 text-amber-700 font-bold px-2 py-1 rounded-lg">今月</button>
+      
+      <!-- カレンダー画面（上部カレンダー ＋ 下部に自動で予定一覧表示） -->
+      <div id="calendar-wrapper" class="hidden flex-1 flex flex-col min-h-0">
+        <!-- 月間カレンダー部分 -->
+        <div class="bg-white rounded-2xl p-3 shadow-sm border border-stone-200/80 mb-2 flex-shrink-0">
+          <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center space-x-2">
+              <span id="cal-month-year" class="font-extrabold text-stone-800 text-lg"></span>
+              <button onclick="goToTodayMonth()" class="text-xs bg-amber-100 text-amber-700 font-bold px-2 py-1 rounded-lg">今月</button>
+            </div>
+            <div class="flex items-center space-x-1">
+              <button onclick="changeMonth(-1)" class="p-1.5 hover:bg-stone-100 rounded-lg text-stone-600">
+                <i data-lucide="chevron-left" class="w-5 h-5"></i>
+              </button>
+              <button onclick="changeMonth(1)" class="p-1.5 hover:bg-stone-100 rounded-lg text-stone-600">
+                <i data-lucide="chevron-right" class="w-5 h-5"></i>
+              </button>
+            </div>
           </div>
-          <div class="flex items-center space-x-1">
-            <button onclick="changeMonth(-1)" class="p-1.5 hover:bg-stone-100 rounded-lg text-stone-600">
-              <i data-lucide="chevron-left" class="w-5 h-5"></i>
-            </button>
-            <button onclick="changeMonth(1)" class="p-1.5 hover:bg-stone-100 rounded-lg text-stone-600">
-              <i data-lucide="chevron-right" class="w-5 h-5"></i>
-            </button>
+          <div class="grid grid-cols-7 gap-1 text-center font-bold text-xs mb-1 text-stone-400">
+            <div class="text-red-400">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="text-sky-400">土</div>
           </div>
+          <div id="cal-days-grid" class="grid grid-cols-7 gap-1 text-center text-sm font-bold"></div>
         </div>
-        <div class="grid grid-cols-7 gap-1 text-center font-bold text-xs mb-1 text-stone-400">
-          <div class="text-red-400">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="text-sky-400">土</div>
+
+        <!-- カレンダー下部：押さなくても自動で出る「予定リストエリア」 -->
+        <div class="flex-1 flex flex-col min-h-0 bg-white rounded-2xl p-3 shadow-sm border border-stone-200/80 mb-1 relative">
+          <!-- 予定リストのヘッダー（日付表示 ＆ ︙メニュー） -->
+          <div class="flex items-center justify-between border-b border-stone-100 pb-2 mb-2 flex-shrink-0 relative">
+            <div class="flex items-center space-x-2">
+              <span id="calendar-auto-badge" class="text-[11px] font-black text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md">今日の予定</span>
+              <h3 id="calendar-auto-date-title" class="text-base font-black text-stone-800"></h3>
+            </div>
+
+            <!-- ︙メニューボタン -->
+            <button type="button" class="p-1.5 text-stone-500 hover:text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-xl" onclick="toggleCalendarHeaderMenu(event)">
+              <i data-lucide="more-vertical" class="w-4 h-4"></i>
+            </button>
+
+            <!-- ︙ドロップダウンメニュー -->
+            <div id="calendar-header-menu" class="hidden absolute right-0 top-9 z-30 bg-white border border-stone-200 rounded-2xl shadow-xl py-1.5 w-36 text-sm font-bold text-stone-700">
+              <button type="button" onclick="promptAddCalendarTodo()" class="w-full text-left px-3.5 py-2 hover:bg-sky-50 text-sky-700 flex items-center">
+                <i data-lucide="plus-circle" class="w-4 h-4 mr-2"></i>追加
+              </button>
+              <button type="button" onclick="promptEditSelectedDay()" class="w-full text-left px-3.5 py-2 hover:bg-stone-50 flex items-center">
+                <i data-lucide="edit-3" class="w-4 h-4 mr-2 text-stone-500"></i>編集
+              </button>
+              <button type="button" onclick="promptClearSelectedDay()" class="w-full text-left px-3.5 py-2 hover:bg-red-50 text-red-600 flex items-center border-t border-stone-100">
+                <i data-lucide="trash-2" class="w-4 h-4 mr-2"></i>消去
+              </button>
+            </div>
+          </div>
+
+          <!-- 自動表示される予定カード一覧 -->
+          <div id="calendar-auto-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1"></div>
         </div>
-        <div id="cal-days-grid" class="grid grid-cols-7 gap-1 text-center text-sm font-bold"></div>
       </div>
 
       <!-- 入力フォーム（お買い物専用） -->
@@ -142,9 +179,9 @@
       <ul id="todo-list" class="space-y-2 overflow-y-auto flex-1 custom-scrollbar pb-6"></ul>
     </div>
 
-    <!-- ===== 学校ビュー（月曜始まり7日間・分厚いバー・下にメモ表示） ===== -->
+    <!-- ===== 学校ビュー ===== -->
     <div id="school-view" class="hidden flex-1 flex flex-col min-h-0">
-      <!-- 週ナビゲーション（例: 8/31〜9/6） -->
+      <!-- 週ナビゲーション -->
       <div class="bg-white rounded-2xl p-2 shadow-sm border border-stone-200/80 mb-2 flex items-center justify-between flex-shrink-0">
         <div class="flex items-center space-x-1">
           <button onclick="changeSchoolWeek(-1)" class="p-1 hover:bg-stone-100 rounded-lg text-stone-600">
@@ -158,46 +195,11 @@
         <button onclick="resetToCurrentWeek()" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-xl">今週</button>
       </div>
 
-      <!-- 7日間の厚みのあるバー（月曜始まり・画面いっぱいに均等配置） -->
+      <!-- 7日間の厚みのあるバー -->
       <div id="school-week-stage" class="flex-1 flex flex-col justify-between py-0.5 space-y-1.5 touch-none overflow-hidden"></div>
     </div>
 
   </main>
-
-  <!-- カレンダー：日付タップ専用モーダル（その日の予定確認＆︙メニュー） -->
-  <div id="calendar-day-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-    <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl flex flex-col max-h-[85vh]">
-      <div class="flex items-center justify-between mb-3 border-b border-stone-100 pb-2 flex-shrink-0">
-        <div>
-          <span class="text-xs font-bold text-sky-600">予定の詳細</span>
-          <h3 id="calendar-modal-date-title" class="text-xl font-black text-stone-800"></h3>
-        </div>
-        <button onclick="closeCalendarDayModal()" class="p-2 hover:bg-stone-100 rounded-full text-stone-400">
-          <i data-lucide="x" class="w-6 h-6"></i>
-        </button>
-      </div>
-
-      <!-- 予定追加フォーム -->
-      <form onsubmit="handleCalendarModalAdd(event)" class="relative flex items-center mb-3 flex-shrink-0">
-        <input
-          type="text"
-          id="calendar-modal-input"
-          placeholder="新しい予定を追加..."
-          class="w-full bg-stone-50 border-2 border-stone-200 focus:border-sky-500 rounded-2xl py-3 pl-3.5 pr-20 text-sm text-stone-800 outline-none"
-          autocomplete="off"
-        >
-        <button
-          type="submit"
-          class="absolute right-1 top-1 bottom-1 bg-sky-600 hover:bg-sky-700 active:scale-95 text-white font-bold px-3.5 rounded-xl flex items-center justify-center text-xs shadow-xs"
-        >
-          追加
-        </button>
-      </form>
-
-      <!-- その日の予定一覧 -->
-      <div id="calendar-modal-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1"></div>
-    </div>
-  </div>
 
   <!-- 学校予定編集ポップアップ -->
   <div id="school-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -213,7 +215,6 @@
       </div>
 
       <form onsubmit="handleSchoolSave(event)" class="space-y-3 overflow-y-auto custom-scrollbar pr-1 flex-1">
-        <!-- じかん -->
         <div>
           <div class="flex items-center justify-between mb-1">
             <label class="text-xs font-extrabold text-stone-600">じかん</label>
@@ -246,7 +247,6 @@
           </div>
         </div>
 
-        <!-- よてい -->
         <div>
           <label class="block text-xs font-extrabold text-stone-600 mb-1">よてい</label>
           <input
@@ -257,7 +257,6 @@
           >
         </div>
 
-        <!-- メモ欄（下に表示される項目） -->
         <div>
           <label class="block text-xs font-extrabold text-stone-600 mb-1">メモ（持ち物・連絡事項など）</label>
           <textarea
@@ -301,13 +300,12 @@
     let calDisplayYear = todayDate.getFullYear();
     let calDisplayMonth = todayDate.getMonth();
 
-    // 学校ページ管理用（週オフセット：0=今週）
+    // 学校ページ管理用
     let currentWeekOffset = 0;
     let selectedSchoolDate = todayISO;
     let isTimeTextMode = false;
     let selectedWheelHour = '14';
     let selectedWheelMinute = '30';
-    let activeDropdownId = null;
 
     function init() {
       const days = ['日', '月', '火', '水', '木', '金', '土'];
@@ -318,10 +316,9 @@
       switchCategory('shopping');
       setupSwipeGestures();
 
-      // 画面タップでドロップダウンメニューを閉じる
       document.addEventListener('click', (e) => {
-        if (!e.target.closest('.dropdown-trigger') && !e.target.closest('.dropdown-menu')) {
-          closeAllDropdowns();
+        if (!e.target.closest('#calendar-header-menu') && !e.target.closest('button[onclick="toggleCalendarHeaderMenu(event)"]')) {
+          closeCalendarHeaderMenu();
         }
       });
     }
@@ -340,7 +337,6 @@
         const diffX = e.changedTouches[0].screenX - touchStartX;
         const diffY = e.changedTouches[0].screenY - touchStartY;
 
-        // 横スワイプ（タブ切り替え）
         if (Math.abs(diffX) > 60 && Math.abs(diffY) < 50) {
           const currentIndex = categories.indexOf(currentCategory);
           if (diffX < 0 && currentIndex < categories.length - 1) {
@@ -351,7 +347,6 @@
           return;
         }
 
-        // 学校タブでの縦スワイプ（週めくり）
         if (currentCategory === 'school') {
           if (Math.abs(diffY) > 40 && Math.abs(diffX) < 50) {
             if (diffY < 0) {
@@ -364,7 +359,6 @@
       }, { passive: true });
     }
 
-    // カテゴリ切り替え（お買い物・学校・カレンダー）
     function switchCategory(cat) {
       currentCategory = cat;
       const tabs = {
@@ -418,9 +412,12 @@
           freqContainer.classList.add('hidden');
           statusBar.classList.add('hidden');
           document.getElementById('todo-list').classList.add('hidden');
+          
+          // カレンダーを開いた瞬間、自動的に今日の日付の予定を表示
+          selectedScheduleDate = todayISO;
           renderCalendar();
+          renderCalendarAutoList();
         } else {
-          // お買い物
           calWrapper.classList.add('hidden');
           todoForm.classList.remove('hidden');
           statusBar.classList.remove('hidden');
@@ -432,11 +429,11 @@
       lucide.createIcons();
     }
 
-    // ===== 学校ページ：月曜始まり7日間 ＆ 分厚いバー ＆ メモ下部表示 =====
+    // ===== 学校ビュー =====
     function getMondayOfWeek(offsetWeeks = 0) {
       const d = new Date(todayDate);
       const day = d.getDay();
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1); // 月曜日
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
       const monday = new Date(d.setDate(diff + (offsetWeeks * 7)));
       return monday;
     }
@@ -470,7 +467,6 @@
       const weekDays = ['月', '火', '水', '木', '金', '土', '日'];
       const primaryMonth = (new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 3)).getMonth();
 
-      // 月曜〜日曜の7日間（画面いっぱいにしっかり太いバーを均等配置）
       for (let i = 0; i < 7; i++) {
         const target = new Date(monday);
         target.setDate(monday.getDate() + i);
@@ -501,8 +497,6 @@
         if (weekDays[i] === '日') dayColor = 'text-red-500 font-extrabold';
         if (isOtherMonth) dayColor = 'text-stone-400';
 
-        // 上段：日付・じかん・よてい
-        // 下段：メモーーーーー
         row.innerHTML = `
           <div class="flex items-center justify-between min-w-0">
             <div class="flex items-center space-x-2 flex-1 min-w-0">
@@ -522,7 +516,6 @@
             <i data-lucide="chevron-right" class="w-4 h-4 text-stone-300 flex-shrink-0 ml-1"></i>
           </div>
 
-          <!-- メモ行（下に表示） -->
           ${info.memo ? `
             <div class="mt-1 pt-1 border-t border-dashed border-stone-200 flex items-start space-x-1.5">
               <span class="text-[10px] font-black text-amber-700 bg-amber-100/70 px-1.5 py-0.2 rounded flex-shrink-0">メモ</span>
@@ -610,7 +603,6 @@
       document.getElementById('school-input-time-text').value = text;
     }
 
-    // 学校モーダル
     function openSchoolModal(dateStr) {
       selectedSchoolDate = dateStr;
       const parts = dateStr.split('-');
@@ -665,7 +657,8 @@
       localStorage.setItem('kantan_school_data', JSON.stringify(schoolData));
       closeSchoolModal();
       renderSchoolWeek();
-      renderCalendar(); // カレンダーにも即座に自動反映
+      renderCalendar();
+      renderCalendarAutoList();
     }
 
     function handleSchoolClear() {
@@ -677,9 +670,10 @@
       closeSchoolModal();
       renderSchoolWeek();
       renderCalendar();
+      renderCalendarAutoList();
     }
 
-    // ===== カレンダー画面 ＆ 日付タップモーダル =====
+    // ===== カレンダー画面 =====
     function changeMonth(delta) {
       calDisplayMonth += delta;
       if (calDisplayMonth < 0) { calDisplayMonth = 11; calDisplayYear--; }
@@ -692,6 +686,7 @@
       calDisplayMonth = todayDate.getMonth();
       selectedScheduleDate = todayISO;
       renderCalendar();
+      renderCalendarAutoList();
     }
 
     function renderCalendar() {
@@ -704,163 +699,114 @@
 
       for (let i = 0; i < firstDay; i++) {
         const empty = document.createElement('div');
-        empty.className = 'py-2.5';
+        empty.className = 'py-2';
         grid.appendChild(empty);
       }
 
       for (let d = 1; d <= lastDate; d++) {
         const dStr = `${calDisplayYear}-${String(calDisplayMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         
-        // 学校の予定があるか、または追加した予定があるか
         const hasSchool = schoolData[dStr] && (schoolData[dStr].event || schoolData[dStr].time || schoolData[dStr].memo);
         const hasSchedule = todos.some(t => t.category === 'schedule' && t.date === dStr && !t.completed);
         const hasAny = hasSchool || hasSchedule;
 
+        const isSelected = dStr === selectedScheduleDate;
         const isToday = dStr === todayISO;
 
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = `py-2.5 rounded-xl flex flex-col items-center justify-center relative active:scale-95 transition-all ${
-          isToday ? 'bg-amber-100 text-amber-900 font-black ring-2 ring-amber-400' : 'hover:bg-stone-100 text-stone-700 font-bold'
+        btn.className = `py-2 rounded-xl flex flex-col items-center justify-center relative active:scale-95 transition-all ${
+          isSelected 
+            ? 'bg-sky-500 text-white font-black shadow-sm' 
+            : isToday 
+              ? 'bg-amber-100 text-amber-900 font-extrabold ring-1 ring-amber-400' 
+              : 'hover:bg-stone-100 text-stone-700 font-bold'
         }`;
 
+        // 日付を押したら、その日の予定リストに自動で切り替える
         btn.onclick = () => {
           selectedScheduleDate = dStr;
-          openCalendarDayModal(dStr);
+          renderCalendar();
+          renderCalendarAutoList();
         };
 
         btn.innerHTML = `
           <span>${d}</span>
-          ${hasAny ? `<span class="w-1.5 h-1.5 rounded-full ${hasSchool ? 'bg-emerald-500' : 'bg-sky-500'} mt-0.5"></span>` : '<span class="w-1.5 h-1.5 mt-0.5"></span>'}
+          ${hasAny ? `<span class="w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-white' : hasSchool ? 'bg-emerald-500' : 'bg-sky-500'} mt-0.5"></span>` : '<span class="w-1.5 h-1.5 mt-0.5"></span>'}
         `;
         grid.appendChild(btn);
       }
     }
 
-    // カレンダー日付タップモーダル（その日の予定のみ表示 ＆ ︙メニュー）
-    function openCalendarDayModal(dateStr) {
-      selectedScheduleDate = dateStr;
-      const parts = dateStr.split('-');
+    // カレンダー下部の「押さなくても出る予定自動リスト」
+    function renderCalendarAutoList() {
+      const parts = selectedScheduleDate.split('-');
       const dObj = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
       const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
-      document.getElementById('calendar-modal-date-title').textContent = 
+      
+      const isToday = selectedScheduleDate === todayISO;
+      document.getElementById('calendar-auto-badge').textContent = isToday ? '今日の予定' : '選択した日';
+      document.getElementById('calendar-auto-date-title').textContent = 
         `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日 (${weekDays[dObj.getDay()]})`;
 
-      renderCalendarModalList();
-      document.getElementById('calendar-day-modal').classList.remove('hidden');
-      lucide.createIcons();
-    }
-
-    function closeCalendarDayModal() {
-      document.getElementById('calendar-day-modal').classList.add('hidden');
-      document.getElementById('calendar-modal-input').value = '';
-      closeAllDropdowns();
-    }
-
-    function handleCalendarModalAdd(e) {
-      e.preventDefault();
-      const input = document.getElementById('calendar-modal-input');
-      const text = input.value.trim();
-      if (!text) return;
-
-      todos.push({
-        id: 'todo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-        text: text,
-        category: 'schedule',
-        date: selectedScheduleDate,
-        completed: false,
-        createdAt: Date.now()
-      });
-
-      saveTodos();
-      input.value = '';
-      renderCalendarModalList();
-      renderCalendar();
-    }
-
-    function renderCalendarModalList() {
-      const listEl = document.getElementById('calendar-modal-list');
+      const listEl = document.getElementById('calendar-auto-list');
       listEl.innerHTML = '';
 
       const dayTodos = todos.filter(t => t.category === 'schedule' && t.date === selectedScheduleDate);
       const hasSchool = schoolData[selectedScheduleDate] && (schoolData[selectedScheduleDate].event || schoolData[selectedScheduleDate].time || schoolData[selectedScheduleDate].memo);
 
       if (dayTodos.length === 0 && !hasSchool) {
-        listEl.innerHTML = '<p class="text-center py-8 text-xs text-stone-400 font-bold">この日の予定はありません</p>';
+        listEl.innerHTML = `
+          <div class="text-center py-6">
+            <p class="text-stone-400 font-bold text-xs">この日の予定はありません</p>
+            <p class="text-stone-300 text-[11px] mt-0.5">右上の「︙」から予定を追加できます</p>
+          </div>
+        `;
         return;
       }
 
-      // 学校予定（自動反映枠・︙メニュー付き）
+      // 学校の予定カード
       if (hasSchool) {
         const s = schoolData[selectedScheduleDate];
         const textParts = [s.time ? `【${s.time}】` : '', s.event].filter(Boolean).join(' ');
         
         const sDiv = document.createElement('div');
-        sDiv.className = 'relative p-3 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col space-y-1';
+        sDiv.className = 'p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 flex flex-col space-y-1';
         sDiv.innerHTML = `
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-1.5">
-              <span class="text-[10px] font-black text-emerald-800 bg-white px-2 py-0.5 rounded border border-emerald-100 flex items-center">
-                <i data-lucide="graduation-cap" class="w-3 h-3 mr-1"></i>学校
-              </span>
-              <span class="text-sm font-bold text-stone-800">${escapeHtml(textParts || '予定あり')}</span>
-            </div>
-            
-            <!-- ︙メニューボタン -->
-            <button type="button" class="dropdown-trigger p-1 text-stone-400 hover:text-stone-600 rounded-lg" onclick="toggleDropdown(event, 'drop-school')">
-              <i data-lucide="more-vertical" class="w-4 h-4"></i>
-            </button>
+          <div class="flex items-center space-x-1.5">
+            <span class="text-[10px] font-black text-emerald-800 bg-white px-1.5 py-0.5 rounded border border-emerald-100 flex items-center">
+              <i data-lucide="graduation-cap" class="w-3 h-3 mr-1"></i>学校
+            </span>
+            <span class="text-sm font-bold text-stone-800">${escapeHtml(textParts || '予定あり')}</span>
           </div>
-
-          ${s.memo ? `<p class="text-xs text-stone-600 pl-1"><span class="font-bold text-stone-500">メモ: </span>${escapeHtml(s.memo)}</p>` : ''}
-
-          <!-- ︙ドロップダウンメニュー -->
-          <div id="drop-school" class="dropdown-menu hidden absolute right-3 top-8 z-20 bg-white border border-stone-200 rounded-xl shadow-lg py-1 w-24 text-xs font-bold text-stone-700">
-            <button type="button" onclick="editSchoolFromCalendar('${selectedScheduleDate}')" class="w-full text-left px-3 py-1.5 hover:bg-stone-50 flex items-center">
-              <i data-lucide="edit-3" class="w-3.5 h-3.5 mr-1.5 text-stone-500"></i>編集
-            </button>
-            <button type="button" onclick="deleteSchoolFromCalendar('${selectedScheduleDate}')" class="w-full text-left px-3 py-1.5 hover:bg-red-50 text-red-600 flex items-center">
-              <i data-lucide="trash-2" class="w-3.5 h-3.5 mr-1.5"></i>消去
-            </button>
-          </div>
+          ${s.memo ? `<p class="text-xs text-stone-600 pl-1 border-t border-dashed border-emerald-200/70 pt-1"><span class="font-bold text-emerald-800">メモ: </span>${escapeHtml(s.memo)}</p>` : ''}
         `;
         listEl.appendChild(sDiv);
       }
 
-      // 通常カレンダー予定（︙メニュー付き）
+      // 通常カレンダー予定
+      dayTodos.sort((a, b) => (a.completed === b.completed ? b.createdAt - a.createdAt : a.completed ? 1 : -1));
+
       dayTodos.forEach(item => {
-        const dropId = `drop_${item.id}`;
         const div = document.createElement('div');
-        div.className = `relative p-3 rounded-2xl border flex items-center justify-between transition-all ${
+        div.className = `p-2.5 rounded-xl border flex items-center justify-between transition-all ${
           item.completed ? 'bg-stone-50 border-stone-200 opacity-60' : 'bg-white border-stone-200 shadow-2xs'
         }`;
         
         div.innerHTML = `
-          <div class="flex items-center space-x-2.5 flex-1 min-w-0 mr-2 cursor-pointer" onclick="toggleTodo('${item.id}'); renderCalendarModalList();">
-            <div class="w-6 h-6 rounded-xl border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+          <div class="flex items-center space-x-2.5 flex-1 min-w-0 mr-2 cursor-pointer" onclick="toggleTodo('${item.id}'); renderCalendarAutoList();">
+            <div class="w-5 h-5 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
               item.completed ? 'bg-sky-500 border-sky-500 text-white' : 'border-stone-300 bg-stone-50'
             }">
-              ${item.completed ? '<i data-lucide="check" class="w-4 h-4 stroke-[3]"></i>' : ''}
+              ${item.completed ? '<i data-lucide="check" class="w-3.5 h-3.5 stroke-[3]"></i>' : ''}
             </div>
             <span class="text-sm font-bold text-stone-800 break-words flex-1 min-w-0 ${item.completed ? 'line-through text-stone-400' : ''}">
               ${escapeHtml(item.text)}
             </span>
           </div>
-
-          <!-- ︙メニューボタン -->
-          <button type="button" class="dropdown-trigger p-1.5 text-stone-400 hover:text-stone-600 rounded-lg flex-shrink-0" onclick="toggleDropdown(event, '${dropId}')">
-            <i data-lucide="more-vertical" class="w-4 h-4"></i>
+          <button onclick="deleteTodo('${item.id}'); renderCalendarAutoList();" class="p-1 text-stone-300 hover:text-red-500 flex-shrink-0" title="削除">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
           </button>
-
-          <!-- ︙ドロップダウンメニュー -->
-          <div id="${dropId}" class="dropdown-menu hidden absolute right-3 top-10 z-20 bg-white border border-stone-200 rounded-xl shadow-lg py-1 w-24 text-xs font-bold text-stone-700">
-            <button type="button" onclick="promptEditTodo('${item.id}')" class="w-full text-left px-3 py-1.5 hover:bg-stone-50 flex items-center">
-              <i data-lucide="edit-3" class="w-3.5 h-3.5 mr-1.5 text-stone-500"></i>編集
-            </button>
-            <button type="button" onclick="deleteTodo('${item.id}'); renderCalendarModalList();" class="w-full text-left px-3 py-1.5 hover:bg-red-50 text-red-600 flex items-center">
-              <i data-lucide="trash-2" class="w-3.5 h-3.5 mr-1.5"></i>消去
-            </button>
-          </div>
         `;
         listEl.appendChild(div);
       });
@@ -868,46 +814,65 @@
       lucide.createIcons();
     }
 
-    // ︙ドロップダウン制御
-    function toggleDropdown(e, menuId) {
+    // ︙ドロップダウン操作
+    function toggleCalendarHeaderMenu(e) {
       e.stopPropagation();
-      const menu = document.getElementById(menuId);
-      const isHidden = menu.classList.contains('hidden');
-      closeAllDropdowns();
-      if (isHidden) {
-        menu.classList.remove('hidden');
-      }
+      const menu = document.getElementById('calendar-header-menu');
+      menu.classList.toggle('hidden');
     }
 
-    function closeAllDropdowns() {
-      document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
+    function closeCalendarHeaderMenu() {
+      const menu = document.getElementById('calendar-header-menu');
+      if (menu) menu.classList.add('hidden');
     }
 
-    function promptEditTodo(id) {
-      closeAllDropdowns();
-      const item = todos.find(t => t.id === id);
-      if (!item) return;
-      const newText = prompt('予定を編集:', item.text);
-      if (newText !== null && newText.trim()) {
-        item.text = newText.trim();
+    function promptAddCalendarTodo() {
+      closeCalendarHeaderMenu();
+      const text = prompt('予定を入力してください:');
+      if (text && text.trim()) {
+        todos.push({
+          id: 'todo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          text: text.trim(),
+          category: 'schedule',
+          date: selectedScheduleDate,
+          completed: false,
+          createdAt: Date.now()
+        });
         saveTodos();
-        renderCalendarModalList();
+        renderCalendar();
+        renderCalendarAutoList();
       }
     }
 
-    function editSchoolFromCalendar(dateStr) {
-      closeAllDropdowns();
-      closeCalendarDayModal();
-      openSchoolModal(dateStr);
+    function promptEditSelectedDay() {
+      closeCalendarHeaderMenu();
+      const dayTodos = todos.filter(t => t.category === 'schedule' && t.date === selectedScheduleDate);
+      const hasSchool = schoolData[selectedScheduleDate] && (schoolData[selectedScheduleDate].event || schoolData[selectedScheduleDate].time || schoolData[selectedScheduleDate].memo);
+
+      if (hasSchool && dayTodos.length === 0) {
+        openSchoolModal(selectedScheduleDate);
+      } else if (dayTodos.length > 0) {
+        const item = dayTodos[0];
+        const newText = prompt('予定を編集:', item.text);
+        if (newText !== null && newText.trim()) {
+          item.text = newText.trim();
+          saveTodos();
+          renderCalendarAutoList();
+        }
+      } else {
+        alert('編集できる予定がありません。「追加」から新しい予定を入れてください。');
+      }
     }
 
-    function deleteSchoolFromCalendar(dateStr) {
-      closeAllDropdowns();
-      if (confirm('学校の予定を削除しますか？')) {
-        delete schoolData[dateStr];
+    function promptClearSelectedDay() {
+      closeCalendarHeaderMenu();
+      if (confirm('この日の予定を消去しますか？')) {
+        todos = todos.filter(t => !(t.category === 'schedule' && t.date === selectedScheduleDate));
+        delete schoolData[selectedScheduleDate];
+        saveTodos();
         localStorage.setItem('kantan_school_data', JSON.stringify(schoolData));
-        renderCalendarModalList();
         renderCalendar();
+        renderCalendarAutoList();
       }
     }
 
