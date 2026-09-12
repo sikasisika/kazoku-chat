@@ -53,19 +53,23 @@
       </div>
     </header>
 
-    <!-- カテゴリ切り替えタブ -->
-    <div class="grid grid-cols-3 gap-2 p-1.5 bg-stone-200/70 rounded-2xl mb-4 text-center">
-      <button id="tab-shopping" onclick="switchCategory('shopping')" class="py-3 px-2 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all bg-white text-amber-600 shadow-sm">
+    <!-- カテゴリ切り替えタブ（4分割に変更） -->
+    <div class="grid grid-cols-4 gap-1.5 p-1.5 bg-stone-200/70 rounded-2xl mb-4 text-center">
+      <button id="tab-shopping" onclick="switchCategory('shopping')" class="py-2.5 px-1 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all bg-white text-amber-600 shadow-sm">
         <i data-lucide="shopping-basket" class="w-5 h-5"></i>
-        <span class="text-sm">お買い物</span>
+        <span class="text-xs">お買い物</span>
       </button>
-      <button id="tab-today" onclick="switchCategory('today')" class="py-3 px-2 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all text-stone-500 hover:text-stone-700">
+      <button id="tab-today" onclick="switchCategory('today')" class="py-2.5 px-1 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all text-stone-500 hover:text-stone-700">
         <i data-lucide="check-square" class="w-5 h-5"></i>
-        <span class="text-sm">今日のこと</span>
+        <span class="text-xs">今日のこと</span>
       </button>
-      <button id="tab-schedule" onclick="switchCategory('schedule')" class="py-3 px-2 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all text-stone-500 hover:text-stone-700">
+      <button id="tab-school" onclick="switchCategory('school')" class="py-2.5 px-1 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all text-stone-500 hover:text-stone-700">
+        <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+        <span class="text-xs">学校</span>
+      </button>
+      <button id="tab-schedule" onclick="switchCategory('schedule')" class="py-2.5 px-1 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all text-stone-500 hover:text-stone-700">
         <i data-lucide="calendar" class="w-5 h-5"></i>
-        <span class="text-sm">予定</span>
+        <span class="text-xs">予定</span>
       </button>
     </div>
 
@@ -161,6 +165,7 @@
       currentCategory = cat;
       const tabShopping = document.getElementById('tab-shopping');
       const tabToday = document.getElementById('tab-today');
+      const tabSchool = document.getElementById('tab-school');
       const tabSchedule = document.getElementById('tab-schedule');
       const calWrapper = document.getElementById('calendar-wrapper');
       const input = document.getElementById('todo-input');
@@ -168,14 +173,19 @@
       const activeClass = 'bg-white text-amber-600 shadow-sm';
       const inactiveClass = 'text-stone-500 hover:text-stone-700';
 
-      [tabShopping, tabToday, tabSchedule].forEach(tab => {
+      const allTabs = [tabShopping, tabToday, tabSchool, tabSchedule];
+      allTabs.forEach(tab => {
         tab.className = tab.className.replace(activeClass, '').trim();
         if (!tab.className.includes(inactiveClass)) {
           tab.className += ` ${inactiveClass}`;
         }
       });
 
-      const currentTab = cat === 'shopping' ? tabShopping : (cat === 'today' ? tabToday : tabSchedule);
+      let currentTab = tabShopping;
+      if (cat === 'today') currentTab = tabToday;
+      if (cat === 'school') currentTab = tabSchool;
+      if (cat === 'schedule') currentTab = tabSchedule;
+
       currentTab.className = currentTab.className.replace(inactiveClass, '').trim() + ` ${activeClass}`;
 
       if (cat === 'schedule') {
@@ -184,7 +194,9 @@
         updateScheduleInputPlaceholder();
       } else {
         calWrapper.classList.add('hidden');
-        input.placeholder = cat === 'shopping' ? 'お買い物メモを入力...' : '今日やることを入力...';
+        if (cat === 'shopping') input.placeholder = 'お買い物メモを入力...';
+        else if (cat === 'today') input.placeholder = '今日やることを入力...';
+        else if (cat === 'school') input.placeholder = '学校の提出物・持ち物を入力...';
       }
 
       renderFrequentChips();
@@ -352,6 +364,7 @@
 
       let activeItems = [];
       let badgeLabel = '';
+      let badgeColor = 'bg-amber-500';
 
       if (currentCategory === 'shopping') {
         activeItems = todos.filter(t => t.category === 'shopping');
@@ -365,10 +378,15 @@
         
         activeItems = [...scheduleToday, ...normalToday];
         badgeLabel = '今日のこと（予定を含む）';
+      } else if (currentCategory === 'school') {
+        activeItems = todos.filter(t => t.category === 'school');
+        badgeLabel = '学校のプリント・持ち物';
+        badgeColor = 'bg-emerald-500';
       } else if (currentCategory === 'schedule') {
         activeItems = todos.filter(t => t.category === 'schedule' && t.date === selectedScheduleDate);
         const parts = selectedScheduleDate.split('-');
         badgeLabel = `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日の予定`;
+        badgeColor = 'bg-sky-500';
       }
 
       // 未完了が上、チェック済み（完了）が下へ自動移動
@@ -382,7 +400,7 @@
       const remaining = activeItems.filter(t => !t.completed).length;
       document.getElementById('remaining-count').textContent = `あと ${remaining} つ`;
       document.getElementById('category-badge-label').innerHTML = `
-        <span class="w-2 h-2 rounded-full ${currentCategory === 'schedule' ? 'bg-sky-500' : 'bg-amber-500'}"></span>
+        <span class="w-2 h-2 rounded-full ${badgeColor}"></span>
         ${badgeLabel}
       `;
 
