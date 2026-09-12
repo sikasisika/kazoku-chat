@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -13,6 +12,10 @@
   
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Firebase SDK (v9 Compat) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
 
   <style>
     body {
@@ -43,7 +46,7 @@
   <main id="main-container" class="w-full max-w-md mx-auto p-3 flex-1 flex flex-col h-screen overflow-hidden">
     
     <!-- ヘッダー -->
-    <header class="flex items-center justify-between py-1.5 mb-1.5 flex-shrink-0">
+    <header class="flex items-center justify-between py-1 mb-1.5 flex-shrink-0">
       <div class="flex items-center space-x-2.5">
         <div id="header-icon-box" class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-200">
           <i id="header-icon" data-lucide="shopping-basket" class="w-6 h-6"></i>
@@ -52,6 +55,9 @@
           <h1 id="page-title" class="text-2xl font-black tracking-wide text-stone-800">お買い物</h1>
           <p id="today-display" class="text-xs font-bold text-stone-500"></p>
         </div>
+      </div>
+      <div id="sync-status" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-200 text-stone-500">
+        ローカル保存中
       </div>
     </header>
 
@@ -76,7 +82,6 @@
       
       <!-- カレンダー画面（上部カレンダー ＋ 下部に自動で予定一覧表示） -->
       <div id="calendar-wrapper" class="hidden flex-1 flex flex-col min-h-0">
-        <!-- 月間カレンダー部分 -->
         <div class="bg-white rounded-2xl p-3 shadow-sm border border-stone-200/80 mb-2 flex-shrink-0">
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center space-x-2">
@@ -98,21 +103,18 @@
           <div id="cal-days-grid" class="grid grid-cols-7 gap-1 text-center text-sm font-bold"></div>
         </div>
 
-        <!-- カレンダー下部：押さなくても自動で出る「予定リストエリア」 -->
+        <!-- カレンダー下部：予定自動リスト -->
         <div class="flex-1 flex flex-col min-h-0 bg-white rounded-2xl p-3 shadow-sm border border-stone-200/80 mb-1 relative">
-          <!-- 予定リストのヘッダー（日付表示 ＆ ︙メニュー） -->
           <div class="flex items-center justify-between border-b border-stone-100 pb-2 mb-2 flex-shrink-0 relative">
             <div class="flex items-center space-x-2">
               <span id="calendar-auto-badge" class="text-[11px] font-black text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md">今日の予定</span>
               <h3 id="calendar-auto-date-title" class="text-base font-black text-stone-800"></h3>
             </div>
 
-            <!-- ︙メニューボタン -->
             <button type="button" class="p-1.5 text-stone-500 hover:text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-xl" onclick="toggleCalendarHeaderMenu(event)">
               <i data-lucide="more-vertical" class="w-4 h-4"></i>
             </button>
 
-            <!-- ︙ドロップダウンメニュー -->
             <div id="calendar-header-menu" class="hidden absolute right-0 top-9 z-30 bg-white border border-stone-200 rounded-2xl shadow-xl py-1.5 w-36 text-sm font-bold text-stone-700">
               <button type="button" onclick="promptAddCalendarTodo()" class="w-full text-left px-3.5 py-2 hover:bg-sky-50 text-sky-700 flex items-center">
                 <i data-lucide="plus-circle" class="w-4 h-4 mr-2"></i>追加
@@ -126,7 +128,6 @@
             </div>
           </div>
 
-          <!-- 自動表示される予定カード一覧 -->
           <div id="calendar-auto-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1"></div>
         </div>
       </div>
@@ -175,28 +176,44 @@
         </div>
       </div>
 
-      <!-- メモ一覧（お買い物専用） -->
+      <!-- メモ一覧 -->
       <ul id="todo-list" class="space-y-2 overflow-y-auto flex-1 custom-scrollbar pb-6"></ul>
     </div>
 
-    <!-- ===== 学校ビュー ===== -->
+    <!-- ===== 学校ビュー（週・月・年の3段切り替え） ===== -->
     <div id="school-view" class="hidden flex-1 flex flex-col min-h-0">
-      <!-- 週ナビゲーション -->
+      <!-- 上部バー：週/月/年 切り替えスイッチ ＆ ナビゲーション -->
       <div class="bg-white rounded-2xl p-2 shadow-sm border border-stone-200/80 mb-2 flex items-center justify-between flex-shrink-0">
+        
+        <!-- 週・月・年 切り替えタブ -->
+        <div class="flex bg-stone-100 p-0.5 rounded-xl text-xs font-bold">
+          <button id="btn-school-mode-week" onclick="setSchoolMode('week')" class="px-2.5 py-1 rounded-lg bg-emerald-600 text-white shadow-xs">週</button>
+          <button id="btn-school-mode-month" onclick="setSchoolMode('month')" class="px-2.5 py-1 rounded-lg text-stone-600">月</button>
+          <button id="btn-school-mode-year" onclick="setSchoolMode('year')" class="px-2.5 py-1 rounded-lg text-stone-600">年</button>
+        </div>
+
+        <!-- ナビゲーション（前へ・次へ） -->
         <div class="flex items-center space-x-1">
-          <button onclick="changeSchoolWeek(-1)" class="p-1 hover:bg-stone-100 rounded-lg text-stone-600">
-            <i data-lucide="chevron-up" class="w-5 h-5"></i>
+          <button onclick="changeSchoolPeriod(-1)" class="p-1 hover:bg-stone-100 rounded-lg text-stone-600">
+            <i data-lucide="chevron-left" class="w-4 h-4"></i>
           </button>
-          <span id="school-week-range-label" class="text-base font-black text-stone-800 tracking-tight"></span>
-          <button onclick="changeSchoolWeek(1)" class="p-1 hover:bg-stone-100 rounded-lg text-stone-600">
-            <i data-lucide="chevron-down" class="w-5 h-5"></i>
+          <span id="school-period-label" class="text-sm font-black text-stone-800 tracking-tight"></span>
+          <button onclick="changeSchoolPeriod(1)" class="p-1 hover:bg-stone-100 rounded-lg text-stone-600">
+            <i data-lucide="chevron-right" class="w-4 h-4"></i>
           </button>
         </div>
-        <button onclick="resetToCurrentWeek()" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-xl">今週</button>
+
+        <button onclick="resetSchoolPeriod()" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-lg">今</button>
       </div>
 
-      <!-- 7日間の厚みのあるバー -->
+      <!-- 1. 週表示モード（画面いっぱいの7日間・月曜始まり・縦スワイプ対応） -->
       <div id="school-week-stage" class="flex-1 flex flex-col justify-between py-0.5 space-y-1.5 touch-none overflow-hidden"></div>
+
+      <!-- 2. 月表示モード（1日〜末日までの行リスト） -->
+      <div id="school-month-stage" class="hidden flex-1 overflow-y-auto custom-scrollbar space-y-1.5 pb-6"></div>
+
+      <!-- 3. 年表示モード（予定のみ簡単に一覧できるビュー） -->
+      <div id="school-year-stage" class="hidden flex-1 overflow-y-auto custom-scrollbar space-y-3 pb-6"></div>
     </div>
 
   </main>
@@ -287,6 +304,30 @@
   </div>
 
   <script>
+    // ===== Firebase設定 =====
+    // Firebase Consoleでコピーした設定をここに入力してください
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    let db = null;
+    let isFirebaseReady = false;
+
+    try {
+      if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY") {
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        isFirebaseReady = true;
+      }
+    } catch (e) {
+      console.warn("Firebase未設定:", e);
+    }
+
     const categories = ['shopping', 'school', 'schedule'];
     let currentCategory = 'shopping';
     let todos = JSON.parse(localStorage.getItem('kantan_todos') || '[]');
@@ -300,8 +341,12 @@
     let calDisplayYear = todayDate.getFullYear();
     let calDisplayMonth = todayDate.getMonth();
 
-    // 学校ページ管理用
+    // 学校ページ管理用（モード: week / month / year）
+    let schoolMode = 'week';
     let currentWeekOffset = 0;
+    let schoolDisplayYear = todayDate.getFullYear();
+    let schoolDisplayMonth = todayDate.getMonth();
+
     let selectedSchoolDate = todayISO;
     let isTimeTextMode = false;
     let selectedWheelHour = '14';
@@ -316,11 +361,67 @@
       switchCategory('shopping');
       setupSwipeGestures();
 
+      if (isFirebaseReady) {
+        setupFirebaseSync();
+      }
+
       document.addEventListener('click', (e) => {
         if (!e.target.closest('#calendar-header-menu') && !e.target.closest('button[onclick="toggleCalendarHeaderMenu(event)"]')) {
           closeCalendarHeaderMenu();
         }
       });
+    }
+
+    function setupFirebaseSync() {
+      const syncEl = document.getElementById('sync-status');
+      syncEl.textContent = 'クラウド同期中';
+      syncEl.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700';
+
+      db.collection('kantan_memo').doc('shared_data').onSnapshot(doc => {
+        if (doc.exists) {
+          const data = doc.data();
+          if (data.todos) {
+            todos = data.todos;
+            localStorage.setItem('kantan_todos', JSON.stringify(todos));
+          }
+          if (data.schoolData) {
+            schoolData = data.schoolData;
+            localStorage.setItem('kantan_school_data', JSON.stringify(schoolData));
+          }
+          if (data.wordUsage) {
+            wordUsage = data.wordUsage;
+            localStorage.setItem('kantan_word_usage', JSON.stringify(wordUsage));
+          }
+          renderCurrentViews();
+        }
+      });
+    }
+
+    function syncToCloud() {
+      localStorage.setItem('kantan_todos', JSON.stringify(todos));
+      localStorage.setItem('kantan_school_data', JSON.stringify(schoolData));
+      localStorage.setItem('kantan_word_usage', JSON.stringify(wordUsage));
+
+      if (isFirebaseReady && db) {
+        db.collection('kantan_memo').doc('shared_data').set({
+          todos: todos,
+          schoolData: schoolData,
+          wordUsage: wordUsage,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).catch(err => console.error(err));
+      }
+    }
+
+    function renderCurrentViews() {
+      if (currentCategory === 'shopping') {
+        renderFrequentChips();
+        renderTodos();
+      } else if (currentCategory === 'school') {
+        renderSchoolView();
+      } else if (currentCategory === 'schedule') {
+        renderCalendar();
+        renderCalendarAutoList();
+      }
     }
 
     function setupSwipeGestures() {
@@ -337,6 +438,7 @@
         const diffX = e.changedTouches[0].screenX - touchStartX;
         const diffY = e.changedTouches[0].screenY - touchStartY;
 
+        // 横スワイプ（タブ切り替え）
         if (Math.abs(diffX) > 60 && Math.abs(diffY) < 50) {
           const currentIndex = categories.indexOf(currentCategory);
           if (diffX < 0 && currentIndex < categories.length - 1) {
@@ -347,12 +449,13 @@
           return;
         }
 
-        if (currentCategory === 'school') {
+        // 学校の週表示のときのみ縦スワイプで週めくり
+        if (currentCategory === 'school' && schoolMode === 'week') {
           if (Math.abs(diffY) > 40 && Math.abs(diffX) < 50) {
             if (diffY < 0) {
-              changeSchoolWeek(1);
+              changeSchoolPeriod(1);
             } else {
-              changeSchoolWeek(-1);
+              changeSchoolPeriod(-1);
             }
           }
         }
@@ -401,7 +504,7 @@
       if (cat === 'school') {
         standardView.classList.add('hidden');
         schoolView.classList.remove('hidden');
-        renderSchoolWeek();
+        renderSchoolView();
       } else {
         standardView.classList.remove('hidden');
         schoolView.classList.add('hidden');
@@ -413,7 +516,6 @@
           statusBar.classList.add('hidden');
           document.getElementById('todo-list').classList.add('hidden');
           
-          // カレンダーを開いた瞬間、自動的に今日の日付の予定を表示
           selectedScheduleDate = todayISO;
           renderCalendar();
           renderCalendarAutoList();
@@ -429,23 +531,74 @@
       lucide.createIcons();
     }
 
-    // ===== 学校ビュー =====
+    // ===== 学校ビュー：週 / 月 / 年 切り替え制御 =====
+    function setSchoolMode(mode) {
+      schoolMode = mode;
+      const modes = ['week', 'month', 'year'];
+      modes.forEach(m => {
+        const btn = document.getElementById(`btn-school-mode-${m}`);
+        if (m === mode) {
+          btn.className = 'px-2.5 py-1 rounded-lg bg-emerald-600 text-white shadow-xs';
+        } else {
+          btn.className = 'px-2.5 py-1 rounded-lg text-stone-600';
+        }
+      });
+
+      renderSchoolView();
+    }
+
+    function changeSchoolPeriod(delta) {
+      if (schoolMode === 'week') {
+        currentWeekOffset += delta;
+      } else if (schoolMode === 'month') {
+        schoolDisplayMonth += delta;
+        if (schoolDisplayMonth < 0) { schoolDisplayMonth = 11; schoolDisplayYear--; }
+        else if (schoolDisplayMonth > 11) { schoolDisplayMonth = 0; schoolDisplayYear++; }
+      } else if (schoolMode === 'year') {
+        schoolDisplayYear += delta;
+      }
+      renderSchoolView();
+    }
+
+    function resetSchoolPeriod() {
+      currentWeekOffset = 0;
+      schoolDisplayYear = todayDate.getFullYear();
+      schoolDisplayMonth = todayDate.getMonth();
+      renderSchoolView();
+    }
+
+    function renderSchoolView() {
+      const weekStage = document.getElementById('school-week-stage');
+      const monthStage = document.getElementById('school-month-stage');
+      const yearStage = document.getElementById('school-year-stage');
+      const periodLabel = document.getElementById('school-period-label');
+
+      weekStage.classList.add('hidden');
+      monthStage.classList.add('hidden');
+      yearStage.classList.add('hidden');
+
+      if (schoolMode === 'week') {
+        weekStage.classList.remove('hidden');
+        renderSchoolWeek();
+      } else if (schoolMode === 'month') {
+        monthStage.classList.remove('hidden');
+        periodLabel.textContent = `${schoolDisplayYear}年 ${schoolDisplayMonth + 1}月`;
+        renderSchoolMonthList();
+      } else if (schoolMode === 'year') {
+        yearStage.classList.remove('hidden');
+        periodLabel.textContent = `${schoolDisplayYear}年`;
+        renderSchoolYearList();
+      }
+      lucide.createIcons();
+    }
+
+    // 1. 週表示
     function getMondayOfWeek(offsetWeeks = 0) {
       const d = new Date(todayDate);
       const day = d.getDay();
       const diff = d.getDate() - day + (day === 0 ? -6 : 1);
       const monday = new Date(d.setDate(diff + (offsetWeeks * 7)));
       return monday;
-    }
-
-    function changeSchoolWeek(delta) {
-      currentWeekOffset += delta;
-      renderSchoolWeek();
-    }
-
-    function resetToCurrentWeek() {
-      currentWeekOffset = 0;
-      renderSchoolWeek();
     }
 
     function renderSchoolWeek() {
@@ -461,8 +614,8 @@
       const endM = sunday.getMonth() + 1;
       const endD = sunday.getDate();
       
-      let rangeText = (startM === endM) ? `${startM}/${startD}〜${endD}` : `${startM}/${startD}〜${endM}/${endD}`;
-      document.getElementById('school-week-range-label').textContent = rangeText;
+      document.getElementById('school-period-label').textContent = 
+        (startM === endM) ? `${startM}/${startD}〜${endD}` : `${startM}/${startD}〜${endM}/${endD}`;
 
       const weekDays = ['月', '火', '水', '木', '金', '土', '日'];
       const primaryMonth = (new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 3)).getMonth();
@@ -481,7 +634,7 @@
         const isOtherMonth = (m !== primaryMonth);
 
         const row = document.createElement('div');
-        row.className = `flex-1 w-full px-3 py-1.5 rounded-2xl border flex flex-col justify-center cursor-pointer transition-all active:scale-[0.98] ${
+        row.className = `flex-1 w-full px-3 py-1 rounded-2xl border flex flex-col justify-center cursor-pointer transition-all active:scale-[0.98] ${
           isToday 
             ? 'bg-amber-50/90 border-amber-300 shadow-sm ring-1 ring-amber-300' 
             : isOtherMonth 
@@ -517,6 +670,57 @@
           </div>
 
           ${info.memo ? `
+            <div class="mt-0.5 pt-0.5 border-t border-dashed border-stone-200 flex items-start space-x-1.5">
+              <span class="text-[10px] font-black text-amber-700 bg-amber-100/70 px-1.5 py-0.2 rounded flex-shrink-0">メモ</span>
+              <span class="text-xs font-semibold text-stone-600 truncate flex-1">${escapeHtml(info.memo)}</span>
+            </div>
+          ` : ''}
+        `;
+        stage.appendChild(row);
+      }
+    }
+
+    // 2. 月表示（1日〜月末の行リスト）
+    function renderSchoolMonthList() {
+      const stage = document.getElementById('school-month-stage');
+      stage.innerHTML = '';
+
+      const lastDate = new Date(schoolDisplayYear, schoolDisplayMonth + 1, 0).getDate();
+      const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+
+      for (let d = 1; d <= lastDate; d++) {
+        const dStr = `${schoolDisplayYear}-${String(schoolDisplayMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const dayOfWeek = new Date(schoolDisplayYear, schoolDisplayMonth, d).getDay();
+        const info = schoolData[dStr] || { time: '', event: '', memo: '' };
+        const isToday = dStr === todayISO;
+
+        let dayColor = 'text-stone-800';
+        if (dayOfWeek === 0) dayColor = 'text-red-500 font-extrabold';
+        if (dayOfWeek === 6) dayColor = 'text-sky-500 font-extrabold';
+
+        const row = document.createElement('div');
+        row.className = `p-2.5 rounded-2xl border flex flex-col justify-center cursor-pointer transition-all active:scale-[0.98] ${
+          isToday ? 'bg-amber-50/90 border-amber-300 shadow-sm' : 'bg-white border-stone-200/80 hover:border-emerald-300'
+        }`;
+        row.onclick = () => openSchoolModal(dStr);
+
+        row.innerHTML = `
+          <div class="flex items-center justify-between min-w-0">
+            <div class="flex items-center space-x-2 flex-1 min-w-0">
+              <span class="text-sm font-black ${dayColor} flex-shrink-0 w-14">
+                ${d} (${weekDays[dayOfWeek]})
+                ${isToday ? '<span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-500 align-middle ml-0.5"></span>' : ''}
+              </span>
+              <span class="text-xs font-bold ${info.time ? 'text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded' : 'text-stone-300'} flex-shrink-0">
+                ${info.time ? escapeHtml(info.time) : '-'}
+              </span>
+              <span class="text-sm font-bold text-stone-800 truncate flex-1 min-w-0">
+                ${info.event ? escapeHtml(info.event) : '<span class="text-stone-300 font-normal text-xs">よていなし</span>'}
+              </span>
+            </div>
+            <i data-lucide="chevron-right" class="w-4 h-4 text-stone-300 flex-shrink-0 ml-1"></i>
+          </div>
+          ${info.memo ? `
             <div class="mt-1 pt-1 border-t border-dashed border-stone-200 flex items-start space-x-1.5">
               <span class="text-[10px] font-black text-amber-700 bg-amber-100/70 px-1.5 py-0.2 rounded flex-shrink-0">メモ</span>
               <span class="text-xs font-semibold text-stone-600 truncate flex-1">${escapeHtml(info.memo)}</span>
@@ -525,7 +729,52 @@
         `;
         stage.appendChild(row);
       }
-      lucide.createIcons();
+    }
+
+    // 3. 年間表示（予定のみを1月〜12月で簡単に見える化）
+    function renderSchoolYearList() {
+      const stage = document.getElementById('school-year-stage');
+      stage.innerHTML = '';
+
+      for (let m = 0; m < 12; m++) {
+        const monthNum = m + 1;
+        const monthBox = document.createElement('div');
+        monthBox.className = 'bg-white rounded-2xl p-3 border border-stone-200 shadow-2xs space-y-2';
+
+        // その月の予定を抽出
+        const monthEvents = Object.keys(schoolData).filter(key => {
+          const parts = key.split('-');
+          return parseInt(parts[0], 10) === schoolDisplayYear && parseInt(parts[1], 10) === monthNum && (schoolData[key].event || schoolData[key].time);
+        }).sort();
+
+        let eventsHtml = '';
+        if (monthEvents.length === 0) {
+          eventsHtml = '<p class="text-xs text-stone-300 font-bold pl-1">登録された予定はありません</p>';
+        } else {
+          eventsHtml = monthEvents.map(dateKey => {
+            const dNum = parseInt(dateKey.split('-')[2], 10);
+            const item = schoolData[dateKey];
+            const textParts = [item.time ? `【${item.time}】` : '', item.event].filter(Boolean).join(' ');
+            return `
+              <div class="flex items-center space-x-2 text-xs py-1 border-b border-stone-100 last:border-none cursor-pointer" onclick="openSchoolModal('${dateKey}')">
+                <span class="font-extrabold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-lg w-12 text-center flex-shrink-0">${monthNum}/${dNum}</span>
+                <span class="font-bold text-stone-800 truncate flex-1">${escapeHtml(textParts)}</span>
+              </div>
+            `;
+          }).join('');
+        }
+
+        monthBox.innerHTML = `
+          <div class="flex items-center justify-between border-b border-stone-100 pb-1.5">
+            <span class="text-base font-black text-stone-800">${monthNum}月</span>
+            <span class="text-xs font-bold ${monthEvents.length > 0 ? 'text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-full' : 'text-stone-400'}">
+              ${monthEvents.length > 0 ? `${monthEvents.length}件の予定` : '予定なし'}
+            </span>
+          </div>
+          <div class="space-y-1">${eventsHtml}</div>
+        `;
+        stage.appendChild(monthBox);
+      }
     }
 
     // ===== ルーレットピッカー =====
@@ -654,9 +903,9 @@
         schoolData[selectedSchoolDate] = { time: timeVal, event: eventVal, memo: memoVal };
       }
 
-      localStorage.setItem('kantan_school_data', JSON.stringify(schoolData));
+      syncToCloud();
       closeSchoolModal();
-      renderSchoolWeek();
+      renderSchoolView();
       renderCalendar();
       renderCalendarAutoList();
     }
@@ -666,9 +915,9 @@
       document.getElementById('school-input-memo').value = '';
       document.getElementById('school-input-time-text').value = '';
       delete schoolData[selectedSchoolDate];
-      localStorage.setItem('kantan_school_data', JSON.stringify(schoolData));
+      syncToCloud();
       closeSchoolModal();
-      renderSchoolWeek();
+      renderSchoolView();
       renderCalendar();
       renderCalendarAutoList();
     }
@@ -723,7 +972,6 @@
               : 'hover:bg-stone-100 text-stone-700 font-bold'
         }`;
 
-        // 日付を押したら、その日の予定リストに自動で切り替える
         btn.onclick = () => {
           selectedScheduleDate = dStr;
           renderCalendar();
@@ -738,7 +986,6 @@
       }
     }
 
-    // カレンダー下部の「押さなくても出る予定自動リスト」
     function renderCalendarAutoList() {
       const parts = selectedScheduleDate.split('-');
       const dObj = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
@@ -765,7 +1012,6 @@
         return;
       }
 
-      // 学校の予定カード
       if (hasSchool) {
         const s = schoolData[selectedScheduleDate];
         const textParts = [s.time ? `【${s.time}】` : '', s.event].filter(Boolean).join(' ');
@@ -784,7 +1030,6 @@
         listEl.appendChild(sDiv);
       }
 
-      // 通常カレンダー予定
       dayTodos.sort((a, b) => (a.completed === b.completed ? b.createdAt - a.createdAt : a.completed ? 1 : -1));
 
       dayTodos.forEach(item => {
@@ -814,7 +1059,6 @@
       lucide.createIcons();
     }
 
-    // ︙ドロップダウン操作
     function toggleCalendarHeaderMenu(e) {
       e.stopPropagation();
       const menu = document.getElementById('calendar-header-menu');
@@ -838,7 +1082,7 @@
           completed: false,
           createdAt: Date.now()
         });
-        saveTodos();
+        syncToCloud();
         renderCalendar();
         renderCalendarAutoList();
       }
@@ -856,7 +1100,7 @@
         const newText = prompt('予定を編集:', item.text);
         if (newText !== null && newText.trim()) {
           item.text = newText.trim();
-          saveTodos();
+          syncToCloud();
           renderCalendarAutoList();
         }
       } else {
@@ -869,8 +1113,7 @@
       if (confirm('この日の予定を消去しますか？')) {
         todos = todos.filter(t => !(t.category === 'schedule' && t.date === selectedScheduleDate));
         delete schoolData[selectedScheduleDate];
-        saveTodos();
-        localStorage.setItem('kantan_school_data', JSON.stringify(schoolData));
+        syncToCloud();
         renderCalendar();
         renderCalendarAutoList();
       }
@@ -897,10 +1140,8 @@
       };
 
       todos.push(newTodo);
-      saveTodos();
-
       wordUsage[text] = (wordUsage[text] || 0) + 1;
-      localStorage.setItem('kantan_word_usage', JSON.stringify(wordUsage));
+      syncToCloud();
 
       renderFrequentChips();
       renderTodos();
@@ -939,7 +1180,7 @@
       const item = todos.find(t => t.id === id);
       if (item) {
         item.completed = !item.completed;
-        saveTodos();
+        syncToCloud();
         renderTodos();
         renderCalendar();
       }
@@ -947,19 +1188,15 @@
 
     function deleteTodo(id) {
       todos = todos.filter(t => t.id !== id);
-      saveTodos();
+      syncToCloud();
       renderTodos();
       renderCalendar();
     }
 
     function clearCompletedTodos() {
       todos = todos.filter(t => !(t.category === currentCategory && t.completed));
-      saveTodos();
+      syncToCloud();
       renderTodos();
-    }
-
-    function saveTodos() {
-      localStorage.setItem('kantan_todos', JSON.stringify(todos));
     }
 
     function renderTodos() {
