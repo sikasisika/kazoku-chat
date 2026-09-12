@@ -91,7 +91,7 @@
         <div id="cal-days-grid" class="grid grid-cols-7 gap-1 text-center text-sm font-bold"></div>
       </div>
 
-      <!-- 入力フォーム -->
+      <!-- 入力フォーム（ボタン一体型） -->
       <form id="todo-form" onsubmit="handleFormSubmit(event)" class="mb-2 relative flex items-center">
         <input
           type="text"
@@ -143,7 +143,7 @@
           <span class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg">学校専用ノート</span>
         </div>
 
-        <!-- 月表示モード時のヘッダー（手書き再現：左に月送り、右にミニカレンダー） -->
+        <!-- 月表示モード時のヘッダー -->
         <div id="school-month-header" class="flex items-center justify-between pt-1 border-t border-stone-100">
           <div class="flex items-center space-x-2">
             <button onclick="changeSchoolMonth(-1)" class="p-1.5 hover:bg-stone-100 rounded-lg text-stone-600">
@@ -155,7 +155,7 @@
             </button>
           </div>
 
-          <!-- 右上のミニカレンダー（手書き再現） -->
+          <!-- 右上のミニカレンダー -->
           <div class="bg-stone-50 border border-stone-200 rounded-xl p-1.5 text-center shadow-2xs">
             <div id="school-mini-cal-title" class="text-[9px] font-black text-stone-500 mb-0.5"></div>
             <div id="school-mini-cal-grid" class="grid grid-cols-7 gap-0.5 text-[8px] font-bold w-24"></div>
@@ -166,7 +166,7 @@
       <!-- 年間ビュー（12ヶ月の一覧） -->
       <div id="school-year-container" class="hidden grid grid-cols-3 gap-2 flex-1 overflow-y-auto custom-scrollbar pb-6"></div>
 
-      <!-- 月表示：1日〜月末の行リスト（手書きのノート再現） -->
+      <!-- 月表示：1日〜月末の行リスト -->
       <div id="school-month-list-container" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 pb-6">
         <p class="text-xs text-stone-400 font-bold px-1 mb-1">※ 日付を押すと予定やメモを追加・確認できます</p>
         <div id="school-days-list" class="space-y-2"></div>
@@ -188,15 +188,19 @@
         </button>
       </div>
 
-      <!-- 入力欄 -->
-      <form onsubmit="handleModalAdd(event)" class="flex items-center gap-1.5 mb-3">
+      <!-- ポップアップ内の入力フォーム（ボタン一体型・絶対に飛び出さない設計） -->
+      <form onsubmit="handleModalAdd(event)" class="relative flex items-center mb-3">
         <input
           type="text"
           id="modal-input"
           placeholder="提出物や予定を入力..."
-          class="flex-1 bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-sm text-stone-800 outline-none focus:border-emerald-500"
+          class="w-full bg-stone-50 border-2 border-stone-200 focus:border-emerald-500 rounded-2xl py-3 pl-3.5 pr-20 text-sm text-stone-800 outline-none"
+          autocomplete="off"
         >
-        <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-sm font-bold active:scale-95">
+        <button
+          type="submit"
+          class="absolute right-1 top-1 bottom-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-bold px-3.5 rounded-xl flex items-center justify-center text-xs shadow-xs"
+        >
           追加
         </button>
       </form>
@@ -234,7 +238,7 @@
       setupSwipeGestures();
     }
 
-    // ===== スワイプ切り替え機能 =====
+    // スワイプ切り替え
     function setupSwipeGestures() {
       let touchStartX = 0;
       let touchStartY = 0;
@@ -249,25 +253,18 @@
         const diffX = e.changedTouches[0].screenX - touchStartX;
         const diffY = e.changedTouches[0].screenY - touchStartY;
 
-        // 横方向へのスワイプ判定（縦スクロールを邪魔しないよう判定）
         if (Math.abs(diffX) > 60 && Math.abs(diffY) < 50) {
           const currentIndex = categories.indexOf(currentCategory);
           if (diffX < 0) {
-            // 左スワイプ -> 次のタブへ
-            if (currentIndex < categories.length - 1) {
-              switchCategory(categories[currentIndex + 1]);
-            }
+            if (currentIndex < categories.length - 1) switchCategory(categories[currentIndex + 1]);
           } else {
-            // 右スワイプ -> 前のタブへ
-            if (currentIndex > 0) {
-              switchCategory(categories[currentIndex - 1]);
-            }
+            if (currentIndex > 0) switchCategory(categories[currentIndex - 1]);
           }
         }
       }, { passive: true });
     }
 
-    // ===== カテゴリ切り替え =====
+    // カテゴリ切り替え
     function switchCategory(cat) {
       currentCategory = cat;
       const tabs = {
@@ -317,7 +314,7 @@
       lucide.createIcons();
     }
 
-    // ===== 学校ページ関連 =====
+    // 学校ページ
     function setSchoolViewMode(mode) {
       schoolViewMode = mode;
       const btnMonth = document.getElementById('btn-school-month-view');
@@ -347,13 +344,8 @@
 
     function changeSchoolMonth(delta) {
       schoolDisplayMonth += delta;
-      if (schoolDisplayMonth < 0) {
-        schoolDisplayMonth = 11;
-        schoolDisplayYear--;
-      } else if (schoolDisplayMonth > 11) {
-        schoolDisplayMonth = 0;
-        schoolDisplayYear++;
-      }
+      if (schoolDisplayMonth < 0) { schoolDisplayMonth = 11; schoolDisplayYear--; }
+      else if (schoolDisplayMonth > 11) { schoolDisplayMonth = 0; schoolDisplayYear++; }
       renderSchoolPage();
     }
 
@@ -367,7 +359,6 @@
       }
     }
 
-    // 手書き風：1日〜月末の行リスト
     function renderSchoolMonthList() {
       const container = document.getElementById('school-days-list');
       container.innerHTML = '';
@@ -397,7 +388,7 @@
         } else {
           const first = dayTodos[0];
           previewHtml = `
-            <span class="text-xs font-bold text-stone-800 truncate max-w-[200px] ${first.completed ? 'line-through text-stone-400' : ''}">
+            <span class="text-xs font-bold text-stone-800 truncate max-w-[180px] ${first.completed ? 'line-through text-stone-400' : ''}">
               ${escapeHtml(first.text)}
             </span>
             ${dayTodos.length > 1 ? `<span class="text-[10px] bg-emerald-100 text-emerald-800 font-black px-1.5 py-0.5 rounded-full ml-1">+${dayTodos.length - 1}</span>` : ''}
@@ -416,7 +407,6 @@
       lucide.createIcons();
     }
 
-    // 右上のミニカレンダー
     function renderSchoolMiniCal() {
       document.getElementById('school-mini-cal-title').textContent = `${schoolDisplayMonth + 1}月カレンダー`;
       const grid = document.getElementById('school-mini-cal-grid');
@@ -440,7 +430,6 @@
       }
     }
 
-    // 年間ビュー（12ヶ月一覧）
     function renderSchoolYearGrid() {
       const container = document.getElementById('school-year-container');
       container.innerHTML = '';
@@ -469,7 +458,7 @@
       }
     }
 
-    // ===== 1日の詳細ポップアップ =====
+    // モーダル
     function openDayModal(dateStr) {
       modalSelectedDate = dateStr;
       const parts = dateStr.split('-');
@@ -524,13 +513,13 @@
         const div = document.createElement('div');
         div.className = `p-2.5 rounded-xl border flex items-center justify-between ${item.completed ? 'bg-stone-50 border-stone-200 opacity-60' : 'bg-white border-stone-200'}`;
         div.innerHTML = `
-          <div class="flex items-center space-x-2 flex-1 cursor-pointer" onclick="toggleTodo('${item.id}'); renderModalTodos();">
-            <div class="w-6 h-6 rounded-lg border-2 flex items-center justify-center ${item.completed ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-stone-300'}">
+          <div class="flex items-center space-x-2 flex-1 cursor-pointer min-w-0 mr-1" onclick="toggleTodo('${item.id}'); renderModalTodos();">
+            <div class="w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 ${item.completed ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-stone-300'}">
               ${item.completed ? '<i data-lucide="check" class="w-4 h-4 stroke-[3]"></i>' : ''}
             </div>
-            <span class="text-sm font-bold text-stone-800 ${item.completed ? 'line-through text-stone-400' : ''}">${escapeHtml(item.text)}</span>
+            <span class="text-sm font-bold text-stone-800 break-words flex-1 min-w-0 ${item.completed ? 'line-through text-stone-400' : ''}">${escapeHtml(item.text)}</span>
           </div>
-          <button onclick="deleteTodo('${item.id}'); renderModalTodos();" class="p-1.5 text-stone-300 hover:text-red-500">
+          <button onclick="deleteTodo('${item.id}'); renderModalTodos();" class="p-1.5 text-stone-300 hover:text-red-500 flex-shrink-0">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
           </button>
         `;
@@ -539,7 +528,7 @@
       lucide.createIcons();
     }
 
-    // ===== 通常タスク管理 =====
+    // 通常タスク
     function updateScheduleInputPlaceholder() {
       const parts = selectedScheduleDate.split('-');
       document.getElementById('todo-input').placeholder = `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日の予定を入力...`;
