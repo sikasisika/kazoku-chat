@@ -54,7 +54,7 @@
       </div>
     </header>
 
-    <!-- タブ切り替え（3つ：お買い物・学校・予定） -->
+    <!-- タブ切り替え（お買い物・学校・予定） -->
     <div class="grid grid-cols-3 gap-1.5 p-1 bg-stone-200/70 rounded-2xl mb-3 text-center flex-shrink-0">
       <button id="tab-shopping" onclick="switchCategory('shopping')" class="py-2.5 px-2 rounded-xl font-bold flex flex-col items-center justify-center space-y-1 transition-all bg-white text-amber-600 shadow-sm">
         <i data-lucide="shopping-basket" class="w-5 h-5"></i>
@@ -70,9 +70,9 @@
       </button>
     </div>
 
-    <!-- ===== 通常ビュー（お買い物・予定用） ===== -->
+    <!-- ===== 通常ビュー（お買い物・予定） ===== -->
     <div id="standard-view" class="flex-1 flex flex-col min-h-0">
-      <!-- 予定カレンダー（予定タブ時のみ） -->
+      <!-- 予定カレンダー -->
       <div id="calendar-wrapper" class="hidden mb-3 bg-white rounded-2xl p-4 shadow-sm border border-stone-200/80 flex-shrink-0">
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center space-x-2">
@@ -121,44 +121,54 @@
         <div id="frequent-chips" class="flex flex-wrap gap-1.5"></div>
       </div>
 
-      <!-- リストステータス -->
+      <!-- リストステータス ＆ 一括消去ボタン -->
       <div class="flex items-center justify-between px-2 py-1 text-xs font-bold text-stone-500 mb-1 flex-shrink-0">
         <span id="category-badge-label" class="flex items-center gap-1.5">
           <span class="w-2 h-2 rounded-full bg-amber-500"></span>
           お買い物リスト
         </span>
-        <span id="remaining-count">あと 0 つ</span>
+        <div class="flex items-center space-x-2">
+          <span id="remaining-count">あと 0 つ</span>
+          <!-- チェック済み一発消去ボタン -->
+          <button
+            id="clear-completed-btn"
+            onclick="clearCompletedTodos()"
+            class="hidden text-[11px] font-bold text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-0.5 rounded-lg transition-all"
+          >
+            済を一括削除
+          </button>
+        </div>
       </div>
 
       <!-- メモ一覧 -->
-      <ul id="todo-list" class="space-y-2.5 overflow-y-auto flex-1 custom-scrollbar pb-6"></ul>
+      <ul id="todo-list" class="space-y-2 overflow-y-auto flex-1 custom-scrollbar pb-6"></ul>
     </div>
 
-    <!-- ===== 学校専用ビュー（1週間固定・上下スワイプで週めくり） ===== -->
+    <!-- ===== 学校専用ビュー（日〜土の7日間・間隔なしスッキリ配置） ===== -->
     <div id="school-view" class="hidden flex-1 flex flex-col min-h-0">
-      <!-- 週ナビゲーション（例: 9/1〜9/5） -->
-      <div class="bg-white rounded-2xl p-2.5 shadow-sm border border-stone-200/80 mb-2 flex items-center justify-between flex-shrink-0">
+      <!-- 週ナビゲーション（例: 8/30〜9/5） -->
+      <div class="bg-white rounded-2xl p-2 shadow-sm border border-stone-200/80 mb-1.5 flex items-center justify-between flex-shrink-0">
         <div class="flex items-center space-x-1">
-          <button onclick="changeSchoolWeek(-1)" class="p-1.5 hover:bg-stone-100 rounded-lg text-stone-600">
+          <button onclick="changeSchoolWeek(-1)" class="p-1 hover:bg-stone-100 rounded-lg text-stone-600">
             <i data-lucide="chevron-up" class="w-5 h-5"></i>
           </button>
           <span id="school-week-range-label" class="text-base font-black text-stone-800 tracking-tight"></span>
-          <button onclick="changeSchoolWeek(1)" class="p-1.5 hover:bg-stone-100 rounded-lg text-stone-600">
+          <button onclick="changeSchoolWeek(1)" class="p-1 hover:bg-stone-100 rounded-lg text-stone-600">
             <i data-lucide="chevron-down" class="w-5 h-5"></i>
           </button>
         </div>
-        <button onclick="resetToCurrentWeek()" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1.5 rounded-xl">今週</button>
+        <button onclick="resetToCurrentWeek()" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2.5 py-1 rounded-xl">今週</button>
       </div>
 
       <!-- 表ヘッダー -->
-      <div class="grid grid-cols-12 gap-1 text-xs font-extrabold text-stone-500 bg-stone-100 p-2 rounded-xl border border-stone-200/70 text-center mb-1.5 flex-shrink-0">
+      <div class="grid grid-cols-12 gap-1 text-xs font-extrabold text-stone-500 bg-stone-100 p-1.5 rounded-xl border border-stone-200/70 text-center mb-1 flex-shrink-0">
         <div class="col-span-3">ひにち</div>
         <div class="col-span-4 border-l border-stone-200">じかん</div>
         <div class="col-span-5 border-l border-stone-200">よてい・もちもの</div>
       </div>
 
-      <!-- 1週間固定エリア（上下スライド操作受付） -->
-      <div id="school-week-stage" class="flex-1 flex flex-col justify-between py-1 touch-none"></div>
+      <!-- 7日間エリア（無駄な隙間をなくしてピタッと並べる） -->
+      <div id="school-week-stage" class="flex-1 flex flex-col space-y-1 overflow-y-auto custom-scrollbar touch-none"></div>
     </div>
 
   </main>
@@ -176,7 +186,6 @@
         </button>
       </div>
 
-      <!-- モーダル内入力フォーム（ボタン一体型） -->
       <form onsubmit="handleScheduleModalAdd(event)" class="relative flex items-center mb-3 flex-shrink-0">
         <input
           type="text"
@@ -193,7 +202,6 @@
         </button>
       </form>
 
-      <!-- メモ＆学校予定一覧 -->
       <div id="schedule-modal-list" class="flex-1 overflow-y-auto custom-scrollbar space-y-2 pr-1"></div>
     </div>
   </div>
@@ -289,7 +297,7 @@
     let calDisplayYear = todayDate.getFullYear();
     let calDisplayMonth = todayDate.getMonth();
 
-    // 学校ページ管理用
+    // 学校ページ管理用（週オフセット：0=今週, 1=来週, -1=先週）
     let currentWeekOffset = 0;
     let selectedSchoolDate = todayISO;
     let isTimeTextMode = false;
@@ -306,7 +314,7 @@
       setupSwipeGestures();
     }
 
-    // スワイプ切り替え
+    // スワイプ操作
     function setupSwipeGestures() {
       let touchStartX = 0;
       let touchStartY = 0;
@@ -334,11 +342,11 @@
 
         // 学校タブ内での縦スワイプ（週めくり）
         if (currentCategory === 'school') {
-          if (Math.abs(diffY) > 50 && Math.abs(diffX) < 60) {
+          if (Math.abs(diffY) > 40 && Math.abs(diffX) < 50) {
             if (diffY < 0) {
-              changeSchoolWeek(1);
+              changeSchoolWeek(1); // 上へ -> 次週
             } else {
-              changeSchoolWeek(-1);
+              changeSchoolWeek(-1); // 下へ -> 前週
             }
           }
         }
@@ -405,13 +413,12 @@
       lucide.createIcons();
     }
 
-    // ===== 学校ページ：1週間固定 & 月跨ぎグレーアウト =====
-    function getMondayOfCurrentWeek(offsetWeeks = 0) {
+    // ===== 学校ページ：日〜土の7日間 ＆ 隙間なし配置 =====
+    function getSundayOfWeek(offsetWeeks = 0) {
       const d = new Date(todayDate);
-      const day = d.getDay();
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-      const monday = new Date(d.setDate(diff + (offsetWeeks * 7)));
-      return monday;
+      const day = d.getDay(); // 0:日, 1:月...
+      const sunday = new Date(d.setDate(d.getDate() - day + (offsetWeeks * 7)));
+      return sunday;
     }
 
     function changeSchoolWeek(delta) {
@@ -428,14 +435,15 @@
       const stage = document.getElementById('school-week-stage');
       stage.innerHTML = '';
 
-      const monday = getMondayOfCurrentWeek(currentWeekOffset);
-      const friday = new Date(monday);
-      friday.setDate(monday.getDate() + 4);
+      const sunday = getSundayOfWeek(currentWeekOffset);
+      const saturday = new Date(sunday);
+      saturday.setDate(sunday.getDate() + 6);
 
-      const startM = monday.getMonth() + 1;
-      const startD = monday.getDate();
-      const endM = friday.getMonth() + 1;
-      const endD = friday.getDate();
+      // 日付範囲ラベル（例: 8/30〜9/5）
+      const startM = sunday.getMonth() + 1;
+      const startD = sunday.getDate();
+      const endM = saturday.getMonth() + 1;
+      const endD = saturday.getDate();
       
       let rangeText = '';
       if (startM === endM) {
@@ -445,12 +453,17 @@
       }
       document.getElementById('school-week-range-label').textContent = rangeText;
 
-      const primaryMonth = friday.getMonth();
-      const weekDays = ['月', '火', '水', '木', '金'];
+      // 主な月（木曜日が含まれる月を基準）
+      const midDay = new Date(sunday);
+      midDay.setDate(sunday.getDate() + 3);
+      const primaryMonth = midDay.getMonth();
 
-      for (let i = 0; i < 5; i++) {
-        const target = new Date(monday);
-        target.setDate(monday.getDate() + i);
+      const weekDays = ['日', '月', '火', '水', '木', '金', '土'];
+
+      // 日〜土の7行を隙間なくコンパクトに生成
+      for (let i = 0; i < 7; i++) {
+        const target = new Date(sunday);
+        target.setDate(sunday.getDate() + i);
 
         const y = target.getFullYear();
         const m = target.getMonth();
@@ -462,27 +475,32 @@
         const isOtherMonth = (m !== primaryMonth);
 
         const row = document.createElement('div');
-        row.className = `grid grid-cols-12 gap-1 p-3 rounded-2xl border items-center cursor-pointer transition-all active:scale-[0.98] ${
+        row.className = `grid grid-cols-12 gap-1 px-2.5 py-2 rounded-xl border items-center cursor-pointer transition-all active:scale-[0.98] ${
           isToday 
-            ? 'bg-amber-50/90 border-amber-300 shadow-sm' 
+            ? 'bg-amber-50/90 border-amber-300 shadow-2xs' 
             : isOtherMonth 
-              ? 'bg-stone-100/70 border-stone-200/50 opacity-60' 
-              : 'bg-white border-stone-200 shadow-2xs hover:border-emerald-300'
+              ? 'bg-stone-100/60 border-stone-200/50 opacity-60' 
+              : 'bg-white border-stone-200 hover:border-emerald-300'
         }`;
         row.onclick = () => openSchoolModal(dStr);
 
         const dateDisplay = isOtherMonth ? `${m + 1}/${dateNum}` : `${dateNum}`;
-        const dayColor = isOtherMonth ? 'text-stone-400' : 'text-stone-700';
+        
+        // 曜日の色分け
+        let dayColor = 'text-stone-700';
+        if (i === 0) dayColor = 'text-red-500 font-extrabold';
+        else if (i === 6) dayColor = 'text-sky-500 font-extrabold';
+        if (isOtherMonth) dayColor = 'text-stone-400';
 
         row.innerHTML = `
           <div class="col-span-3 text-xs font-black ${dayColor} flex items-center">
             <span>${dateDisplay} (${weekDays[i]})</span>
-            ${isToday ? '<span class="ml-1 w-2 h-2 rounded-full bg-amber-500"></span>' : ''}
+            ${isToday ? '<span class="ml-1 w-1.5 h-1.5 rounded-full bg-amber-500"></span>' : ''}
           </div>
-          <div class="col-span-4 text-xs font-bold ${isOtherMonth ? 'text-stone-400' : 'text-stone-700'} truncate pl-1.5 border-l border-stone-200">
+          <div class="col-span-4 text-xs font-bold ${isOtherMonth ? 'text-stone-400' : 'text-stone-700'} truncate pl-1 border-l border-stone-200">
             ${info.time ? escapeHtml(info.time) : '<span class="text-stone-300 font-normal">-</span>'}
           </div>
-          <div class="col-span-5 text-xs font-bold ${isOtherMonth ? 'text-stone-400' : 'text-stone-800'} truncate pl-1.5 border-l border-stone-200 flex items-center justify-between">
+          <div class="col-span-5 text-xs font-bold ${isOtherMonth ? 'text-stone-400' : 'text-stone-800'} truncate pl-1 border-l border-stone-200 flex items-center justify-between">
             <span class="truncate">${info.event ? escapeHtml(info.event) : '<span class="text-stone-300 font-normal">よていなし</span>'}</span>
             <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-stone-300 flex-shrink-0"></i>
           </div>
@@ -637,7 +655,7 @@
       renderSchoolWeek();
     }
 
-    // ===== 予定タブ：カレンダー & 日付クリック時のポップアップ =====
+    // ===== 予定タブ：カレンダー ＆ 日付モーダル =====
     function updateScheduleInputPlaceholder() {
       const parts = selectedScheduleDate.split('-');
       document.getElementById('todo-input').placeholder = `${parseInt(parts[1], 10)}月${parseInt(parts[2], 10)}日の予定を入力...`;
@@ -689,7 +707,6 @@
           isToday ? 'bg-amber-100 text-amber-800 font-extrabold' : 'hover:bg-stone-100 text-stone-700'
         }`;
 
-        // 日付を押したらその日の予定ポップアップを開く
         btn.onclick = () => {
           selectedScheduleDate = dStr;
           updateScheduleInputPlaceholder();
@@ -706,7 +723,6 @@
       }
     }
 
-    // 予定タブの日付詳細モーダル
     function openScheduleDayModal(dateStr) {
       const parts = dateStr.split('-');
       const dObj = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
@@ -758,7 +774,6 @@
         return;
       }
 
-      // 学校予定があれば上部に表示
       if (hasSchool) {
         const s = schoolData[selectedScheduleDate];
         const schoolText = [s.time ? `【${s.time}】` : '', s.event].filter(Boolean).join(' ');
@@ -776,7 +791,6 @@
         listEl.appendChild(sDiv);
       }
 
-      // 通常メモ
       dayTodos.sort((a, b) => (a.completed === b.completed ? b.createdAt - a.createdAt : a.completed ? 1 : -1));
 
       dayTodos.forEach(item => {
@@ -886,6 +900,13 @@
       if (currentCategory === 'schedule') renderCalendar();
     }
 
+    // チェック済みの項目を1発で消す
+    function clearCompletedTodos() {
+      todos = todos.filter(t => !(t.category === currentCategory && t.completed));
+      saveTodos();
+      renderTodos();
+    }
+
     function saveTodos() {
       localStorage.setItem('kantan_todos', JSON.stringify(todos));
     }
@@ -930,11 +951,21 @@
       });
 
       const remaining = activeItems.filter(t => !t.completed).length;
+      const completedCount = activeItems.filter(t => t.completed && !t.isSchoolStatic).length;
+      
       document.getElementById('remaining-count').textContent = `あと ${remaining} つ`;
       document.getElementById('category-badge-label').innerHTML = `
         <span class="w-2 h-2 rounded-full ${badgeColor}"></span>
         ${badgeLabel}
       `;
+
+      // お買い物タブかつ完了項目があれば一括消去ボタンを表示
+      const clearBtn = document.getElementById('clear-completed-btn');
+      if (currentCategory === 'shopping' && completedCount > 0) {
+        clearBtn.classList.remove('hidden');
+      } else {
+        clearBtn.classList.add('hidden');
+      }
 
       if (activeItems.length === 0) {
         listEl.innerHTML = `
@@ -949,8 +980,8 @@
 
       activeItems.forEach(todo => {
         const li = document.createElement('li');
-        li.className = `p-3.5 rounded-2xl border transition-all flex items-center justify-between ${
-          todo.completed ? 'bg-stone-100/80 border-stone-200 opacity-60' : 'bg-white border-stone-200 shadow-sm'
+        li.className = `p-3 rounded-2xl border transition-all flex items-center justify-between ${
+          todo.completed ? 'bg-stone-100/80 border-stone-200 opacity-60' : 'bg-white border-stone-200 shadow-2xs'
         }`;
 
         if (todo.isSchoolStatic) {
