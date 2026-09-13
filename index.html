@@ -6,7 +6,6 @@
   <meta name="theme-color" content="#faf6ef">
   <title>かんたんメモ</title>
   
-  <!-- PWA（ホーム画面追加・アプリ風起動）用の設定 -->
   <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -188,6 +187,7 @@
 
     <!-- ===== 学校ビュー ===== -->
     <div id="school-view" class="hidden flex-1 flex flex-col min-h-0">
+      <!-- 上部バー（＋iPhoneカレンダー出力ボタン追加） -->
       <div class="bg-white rounded-2xl p-2 shadow-sm border border-stone-200/80 mb-2 flex items-center justify-between flex-shrink-0">
         
         <div class="flex bg-stone-100 p-0.5 rounded-xl text-xs font-bold">
@@ -206,11 +206,21 @@
           </button>
         </div>
 
-        <button onclick="resetSchoolPeriod()" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-lg">今</button>
+        <div class="flex items-center space-x-1">
+          <button onclick="exportToICS()" class="text-[11px] bg-sky-50 text-sky-700 border border-sky-200 font-bold px-2 py-1 rounded-lg flex items-center" title="iPhoneカレンダーに追加">
+            <i data-lucide="download" class="w-3.5 h-3.5 mr-0.5"></i>書出
+          </button>
+          <button onclick="resetSchoolPeriod()" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-lg">今</button>
+        </div>
       </div>
 
+      <!-- 1. 週表示モード -->
       <div id="school-week-stage" class="flex-1 flex flex-col justify-between py-0.5 space-y-1.5 touch-none overflow-hidden"></div>
+
+      <!-- 2. 月表示モード（閲覧専用） -->
       <div id="school-month-stage" class="hidden flex-1 overflow-y-auto custom-scrollbar space-y-1.5 pb-6"></div>
+
+      <!-- 3. 年表示モード（閲覧専用） -->
       <div id="school-year-stage" class="hidden flex-1 overflow-y-auto custom-scrollbar space-y-3 pb-6"></div>
     </div>
 
@@ -641,6 +651,43 @@
       const diff = d.getDate() - day + (day === 0 ? -6 : 1);
       const monday = new Date(d.setDate(diff + (offsetWeeks * 7)));
       return monday;
+    }
+
+    // iPhoneカレンダー書き出し機能（.icsファイル生成）
+    function exportToICS() {
+      let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Kantan Memo//School Schedule//JA\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\n";
+
+      const entries = Object.entries(schoolData);
+      if (entries.length === 0) {
+        alert('書き出す学校の予定がまだありません。');
+        return;
+      }
+
+      entries.forEach(([dateStr, info]) => {
+        if (!info.event && !info.time && !info.memo) return;
+        const cleanDate = dateStr.replace(/-/g, '');
+        const summary = [info.time ? `[${info.time}]` : '', info.event || '学校の予定'].filter(Boolean).join(' ');
+        const description = info.memo ? `メモ: ${info.memo}` : '';
+
+        icsContent += "BEGIN:VEVENT\n";
+        icsContent += `DTSTART;VALUE=DATE:${cleanDate}\n`;
+        icsContent += `DTEND;VALUE=DATE:${cleanDate}\n`;
+        icsContent += `SUMMARY:${summary}\n`;
+        if (description) icsContent += `DESCRIPTION:${description}\n`;
+        icsContent += "END:VEVENT\n";
+      });
+
+      icsContent += "END:VCALENDAR";
+
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'school_schedule.ics';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
     function renderSchoolWeek() {
