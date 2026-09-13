@@ -187,7 +187,7 @@
 
     <!-- ===== 学校ビュー ===== -->
     <div id="school-view" class="hidden flex-1 flex flex-col min-h-0">
-      <!-- 上部バー（＋iPhoneカレンダー出力ボタン追加） -->
+      <!-- 上部バー（一括書出ボタン付き） -->
       <div class="bg-white rounded-2xl p-2 shadow-sm border border-stone-200/80 mb-2 flex items-center justify-between flex-shrink-0">
         
         <div class="flex bg-stone-100 p-0.5 rounded-xl text-xs font-bold">
@@ -207,8 +207,8 @@
         </div>
 
         <div class="flex items-center space-x-1">
-          <button onclick="exportToICS()" class="text-[11px] bg-sky-50 text-sky-700 border border-sky-200 font-bold px-2 py-1 rounded-lg flex items-center" title="iPhoneカレンダーに追加">
-            <i data-lucide="download" class="w-3.5 h-3.5 mr-0.5"></i>書出
+          <button onclick="exportAllToICS()" class="text-[11px] bg-sky-50 text-sky-700 border border-sky-200 font-bold px-2 py-1 rounded-lg flex items-center" title="全予定を一括追加">
+            <i data-lucide="download" class="w-3.5 h-3.5 mr-0.5"></i>一括書出
           </button>
           <button onclick="resetSchoolPeriod()" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-lg">今</button>
         </div>
@@ -226,7 +226,7 @@
 
   </main>
 
-  <!-- 学校：入力済み詳細モーダル -->
+  <!-- 学校：入力済み詳細モーダル（1日ずつの個別書出ボタン付き） -->
   <div id="school-detail-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl flex flex-col relative">
       <div class="flex items-center justify-between border-b border-stone-100 pb-2 mb-3">
@@ -235,6 +235,11 @@
           <h3 id="school-detail-date-title" class="text-xl font-black text-stone-800"></h3>
         </div>
         <div class="flex items-center space-x-1 relative">
+          <!-- 個別追加ボタン -->
+          <button type="button" onclick="exportSingleToICS()" class="p-2 text-sky-600 hover:text-sky-800 bg-sky-50 hover:bg-sky-100 rounded-xl" title="この日をカレンダーに追加">
+            <i data-lucide="download" class="w-4 h-4"></i>
+          </button>
+          <!-- ︙ボタン -->
           <button type="button" class="p-2 text-stone-500 hover:text-stone-800 bg-stone-100 hover:bg-stone-200 rounded-xl" onclick="toggleSchoolDetailMenu(event)">
             <i data-lucide="more-vertical" class="w-5 h-5"></i>
           </button>
@@ -653,25 +658,75 @@
       return monday;
     }
 
-    // iPhoneカレンダー書き出し機能（.icsファイル生成）
-    function exportToICS() {
+    // カレンダーイベント生成ヘルパー（時間付き or 終日を自動判別）
+    function generateSingleICS(dateStr, info) {
       let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Kantan Memo//School Schedule//JA\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\n";
+      const cleanDate = dateStr.replace(/-/g, '');
+      const summary = [info.event || '学校の予定'].filter(Boolean).join(' ');
+      const description = info.memo ? `メモ: ${info.memo}` : '';
 
+      icsContent += "BEGIN:VEVENT\n";
+      
+      // 時間が "HH:MM" 形式なら時刻付きイベントにする
+      const timeMatch = (info.time || "").match(/^(\d{1,2}):(\d{2})$/);
+      if (timeMatch) {
+        const h = timeMatch[1].padStart(2, '0');
+        const min = timeMatch[2].padStart(2, '0');
+        icsContent += `DTSTART:${cleanDate}T${h}${min}00\n`;
+        // 終了時間は1時間後に設定
+        let endH = String(parseInt(h, 10) + 1).padStart(2, '0');
+        icsContent += `DTEND:${cleanDate}T${endH}${min}00\n`;
+      } else {
+        // "5時間授業" などのテキストや時間なしの場合は終日イベント
+        icsContent += `DTSTART;VALUE=DATE:${cleanDate}\n`;
+        const dObj = new Date(parseInt(dateStr.split('-')[0]), parseInt(dateStr.split('-')[1]) - 1, parseInt(dateStr.split('-')[2]) + 1);
+        const nextDateStr = `${dObj.getFullYear()}${String(dObj.getMonth() + 1).padStart(2, '0')}${String(dObj.getDate()).padStart(2, '0')}`;
+        icsContent += `DTEND;VALUE=DATE:${nextDateStr}\n`;
+        if (info.time) {
+          // テキストの時間があれば説明に付記
+          description ? description = `時間: ${info.time} / ` + description : description = `時間: ${info.time}`;
+        }
+      }
+
+      icsContent += `SUMMARY:${summary}\n`;
+      if (description) icsContent += `DESCRIPTION:${description}\n`;
+      icsContent += "END:VEVENT\nEND:VCALENDAR";
+      return icsContent;
+    }
+
+    // 全てを一括書き出し
+    function exportAllToICS() {
       const entries = Object.entries(schoolData);
       if (entries.length === 0) {
         alert('書き出す学校の予定がまだありません。');
         return;
       }
 
+      let icsContent = "BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//Kantan Memo//School Schedule//JA\nCALSCALE:GREGORIAN\nMETHOD:PUBLISH\n";
+
       entries.forEach(([dateStr, info]) => {
         if (!info.event && !info.time && !info.memo) return;
         const cleanDate = dateStr.replace(/-/g, '');
-        const summary = [info.time ? `[${info.time}]` : '', info.event || '学校の予定'].filter(Boolean).join(' ');
-        const description = info.memo ? `メモ: ${info.memo}` : '';
+        const summary = [info.event || '学校の予定'].filter(Boolean).join(' ');
+        let description = info.memo ? `メモ: ${info.memo}` : '';
 
         icsContent += "BEGIN:VEVENT\n";
-        icsContent += `DTSTART;VALUE=DATE:${cleanDate}\n`;
-        icsContent += `DTEND;VALUE=DATE:${cleanDate}\n`;
+        const timeMatch = (info.time || "").match(/^(\d{1,2}):(\d{2})$/);
+        if (timeMatch) {
+          const h = timeMatch[1].padStart(2, '0');
+          const min = timeMatch[2].padStart(2, '0');
+          icsContent += `DTSTART:${cleanDate}T${h}${min}00\n`;
+          let endH = String(parseInt(h, 10) + 1).padStart(2, '0');
+          icsContent += `DTEND:${cleanDate}T${endH}${min}00\n`;
+        } else {
+          icsContent += `DTSTART;VALUE=DATE:${cleanDate}\n`;
+          const dObj = new Date(parseInt(dateStr.split('-')[0]), parseInt(dateStr.split('-')[1]) - 1, parseInt(dateStr.split('-')[2]) + 1);
+          const nextDateStr = `${dObj.getFullYear()}${String(dObj.getMonth() + 1).padStart(2, '0')}${String(dObj.getDate()).padStart(2, '0')}`;
+          icsContent += `DTEND;VALUE=DATE:${nextDateStr}\n`;
+          if (info.time) {
+            description = description ? `時間: ${info.time} / ` + description : `時間: ${info.time}`;
+          }
+        }
         icsContent += `SUMMARY:${summary}\n`;
         if (description) icsContent += `DESCRIPTION:${description}\n`;
         icsContent += "END:VEVENT\n";
@@ -679,11 +734,26 @@
 
       icsContent += "END:VCALENDAR";
 
-      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      downloadICSFile(icsContent, 'school_all_schedule.ics');
+    }
+
+    // 1日ずつ個別に書き出し（詳細モーダルから実行）
+    function exportSingleToICS() {
+      const info = schoolData[selectedSchoolDate];
+      if (!info || (!info.event && !info.time && !info.memo)) {
+        alert('この日には書き出す予定がありません。');
+        return;
+      }
+      const icsContent = generateSingleICS(selectedSchoolDate, info);
+      downloadICSFile(icsContent, `school_${selectedSchoolDate}.ics`);
+    }
+
+    function downloadICSFile(content, filename) {
+      const blob = new Blob([content], { type: 'text/calendar;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'school_schedule.ics';
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
